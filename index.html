@@ -1,74 +1,374 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
+
 <meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1"
+>
+
 <title>利用者登録</title>
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
 
-body{
-    font-family:sans-serif;
-    background:#f5f5f5;
-    padding:30px;
+body {
+  font-family: sans-serif;
+  background: #f5f5f5;
+  padding: 20px;
+  margin: 0;
 }
 
-.box{
-    max-width:450px;
-    margin:auto;
-    background:white;
-    padding:30px;
-    border-radius:10px;
+.box {
+  max-width: 420px;
+  margin: 30px auto;
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-sizing: border-box;
 }
 
-h2{
-    text-align:center;
+h2 {
+  text-align: center;
+  margin-top: 0;
+}
+
+.description {
+  line-height: 1.6;
+}
+
+label {
+  display: block;
+  margin-top: 20px;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  font-size: 16px;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+}
+
+button {
+  width: 100%;
+  margin-top: 25px;
+  padding: 14px;
+  font-size: 17px;
+  background: #06c755;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #aaaaaa;
+  cursor: default;
+}
+
+#message {
+  margin-top: 20px;
+  text-align: center;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.success {
+  font-weight: bold;
 }
 
 </style>
 
 </head>
 
+
 <body>
 
 <div class="box">
 
-<h2>利用者登録</h2>
+  <h2>利用者登録</h2>
 
-<p id="message">
-LIFF初期化中...
-</p>
+  <p class="description">
+    LINEで案内された
+    「利用者ID」と「氏名」を入力してください。
+    <br>
+    氏名はLINEで送られた文字を
+    そのままコピーして貼り付けてください。
+  </p>
+
+
+  <label for="userId">
+    利用者ID
+  </label>
+
+  <input
+    type="text"
+    id="userId"
+    placeholder="例：1001"
+  >
+
+
+  <label for="userName">
+    氏名
+  </label>
+
+  <input
+    type="text"
+    id="userName"
+    placeholder="LINEで送られた氏名を貼り付けてください"
+  >
+
+
+  <button
+    id="registerButton"
+    type="button"
+    disabled
+    onclick="registerUser()"
+  >
+    登録する
+  </button>
+
+
+  <div id="message">
+    LINE情報を確認しています...
+  </div>
 
 </div>
 
+
+<form
+  id="registerForm"
+  method="post"
+  target="resultFrame"
+  style="display:none;"
+>
+
+  <input
+    type="hidden"
+    name="userId"
+    id="sendUserId"
+  >
+
+  <input
+    type="hidden"
+    name="userName"
+    id="sendUserName"
+  >
+
+  <input
+    type="hidden"
+    name="lineUserId"
+    id="sendLineUserId"
+  >
+
+</form>
+
+
+<iframe
+  name="resultFrame"
+  id="resultFrame"
+  style="display:none;"
+></iframe>
+
+
 <script>
 
-const LIFF_ID="2011016159-YnmXbx1i";
+const LIFF_ID =
+  "2011016159-YnmXbx1i";
 
-async function start(){
+const GAS_URL =
+  "https://script.google.com/macros/s/AKfycbyQ8e1FKptHRjF9hlbJowrvqS_FQYoVsp0iSPYPVCuiEX8pDvFZWUfwstbzc1dCedi8pA/exec";
 
-    try{
+let lineUserId = "";
 
-        document.getElementById("message").innerHTML="① LIFF初期化開始";
 
-        await liff.init({
-            liffId:LIFF_ID
-        });
+async function initializeLiff() {
 
-        document.getElementById("message").innerHTML="② LIFF初期化成功";
+  const message =
+    document.getElementById("message");
 
-    }catch(e){
+  try {
 
-        document.getElementById("message").innerHTML=e.message;
+    message.textContent =
+      "LINE情報を確認しています...";
 
+    await liff.init({
+      liffId: LIFF_ID
+    });
+
+    if (!liff.isLoggedIn()) {
+
+      message.textContent =
+        "LINEにログインします...";
+
+      liff.login();
+
+      return;
     }
+
+    const profile =
+      await liff.getProfile();
+
+    lineUserId =
+      profile.userId;
+
+    document
+      .getElementById("registerButton")
+      .disabled = false;
+
+    message.textContent =
+      "利用者IDと氏名を入力してください。";
+
+  } catch (error) {
+
+    console.error(error);
+
+    message.textContent =
+      "LINE情報を取得できませんでした。\nLINEからもう一度開いてください。";
+
+  }
 
 }
 
-start();
+
+function registerUser() {
+
+  const userId =
+    document
+      .getElementById("userId")
+      .value
+      .trim();
+
+  const userName =
+    document
+      .getElementById("userName")
+      .value
+      .trim();
+
+  const message =
+    document.getElementById("message");
+
+
+  if (userId === "") {
+
+    message.textContent =
+      "利用者IDを入力してください。";
+
+    return;
+  }
+
+
+  if (userName === "") {
+
+    message.textContent =
+      "氏名を入力してください。";
+
+    return;
+  }
+
+
+  if (lineUserId === "") {
+
+    message.textContent =
+      "LINEユーザー情報を取得できていません。";
+
+    return;
+  }
+
+
+  document
+    .getElementById("registerButton")
+    .disabled = true;
+
+  message.textContent =
+    "登録しています...";
+
+
+  document
+    .getElementById("sendUserId")
+    .value = userId;
+
+  document
+    .getElementById("sendUserName")
+    .value = userName;
+
+  document
+    .getElementById("sendLineUserId")
+    .value = lineUserId;
+
+
+  const form =
+    document.getElementById("registerForm");
+
+  form.action =
+    GAS_URL;
+
+  form.submit();
+
+}
+
+
+window.addEventListener(
+  "message",
+  function(event) {
+
+    if (
+      !event.data ||
+      event.data.type !==
+        "userRegisterResult"
+    ) {
+      return;
+    }
+
+    const result =
+      event.data.data;
+
+    const message =
+      document.getElementById("message");
+
+    if (result.ok) {
+
+      message.textContent =
+        result.message;
+
+      message.className =
+        "success";
+
+      document
+        .getElementById("userId")
+        .disabled = true;
+
+      document
+        .getElementById("userName")
+        .disabled = true;
+
+    } else {
+
+      message.textContent =
+        result.message;
+
+      document
+        .getElementById("registerButton")
+        .disabled = false;
+
+    }
+
+  }
+);
+
+
+initializeLiff();
 
 </script>
 
 </body>
+
 </html>
