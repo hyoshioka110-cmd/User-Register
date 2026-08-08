@@ -1,1 +1,557 @@
+<!DOCTYPE html>
+<html lang="ja">
 
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>ブログ管理</title>
+
+<style>
+
+body {
+  font-family: sans-serif;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 16px;
+  font-size: 17px;
+}
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  font-size: 28px;
+}
+
+.post {
+  background: white;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 22px;
+}
+
+.postHeader {
+  margin-bottom: 12px;
+}
+
+.name {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.date {
+  font-size: 14px;
+  color: #777;
+  margin-top: 4px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: bold;
+  margin: 16px 0;
+}
+
+.image {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #eee;
+  margin-bottom: 16px;
+}
+
+.section {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 10px;
+}
+
+.original {
+  background: #fff8e8;
+}
+
+.corrected {
+  background: #edf8ef;
+}
+
+.grammar {
+  background: #eef4ff;
+}
+
+.advice {
+  background: #f7efff;
+}
+
+.sectionTitle {
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.sectionText {
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
+.approveButton {
+  width: 100%;
+  min-height: 56px;
+  margin-top: 20px;
+  font-size: 19px;
+  font-weight: bold;
+  color: white;
+  background: #06C755;
+  border: none;
+  border-radius: 10px;
+}
+
+.approveButton:disabled {
+  background: #aaa;
+}
+
+#message {
+  text-align: center;
+  padding: 20px;
+  line-height: 1.6;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>ブログ管理</h1>
+
+<div id="message">
+未確認の投稿を読み込んでいます...
+</div>
+
+<div id="postList"></div>
+
+</div>
+
+
+<form
+  id="apiForm"
+  method="post"
+  target="resultFrame"
+  style="display:none;"
+>
+
+<input
+  type="hidden"
+  name="action"
+  id="action"
+>
+
+<input
+  type="hidden"
+  name="postId"
+  id="sendPostId"
+>
+
+</form>
+
+
+<iframe
+  name="resultFrame"
+  id="resultFrame"
+  style="display:none;"
+></iframe>
+
+
+<script>
+
+const BLOG_GAS_URL =
+  "https://script.google.com/macros/s/AKfycbyXhyaC-7Qd3vDRR9u9ovbbGA0cA4X002JdMe1OxVvWw7-XE4OL7dyB9DZaV42kHcJyqw/exec";
+
+
+function callApi(
+  action,
+  postId = ""
+) {
+
+  document
+    .getElementById("action")
+    .value =
+    action;
+
+  document
+    .getElementById("sendPostId")
+    .value =
+    postId;
+
+  const form =
+    document.getElementById("apiForm");
+
+  form.action =
+    BLOG_GAS_URL;
+
+  form.submit();
+
+}
+
+
+window.addEventListener(
+  "message",
+  function(event) {
+
+    if (
+      !event.data ||
+      event.data.type !==
+        "blogSystemResult"
+    ) {
+      return;
+    }
+
+    const result =
+      event.data.data;
+
+    const message =
+      document.getElementById("message");
+
+
+    if (!result.ok) {
+
+      message.textContent =
+        result.message;
+
+      return;
+    }
+
+
+    if (
+      result.action ===
+      "getPendingPosts"
+    ) {
+
+      renderPosts(
+        result.posts
+      );
+
+      return;
+    }
+
+
+    if (
+      result.action ===
+      "approvePost"
+    ) {
+
+      alert(
+        result.message
+      );
+
+      callApi(
+        "getPendingPosts"
+      );
+
+    }
+
+  }
+);
+
+
+function renderPosts(
+  posts
+) {
+
+  const list =
+    document.getElementById("postList");
+
+  const message =
+    document.getElementById("message");
+
+
+  list.innerHTML =
+    "";
+
+
+  if (
+    !posts ||
+    posts.length === 0
+  ) {
+
+    message.textContent =
+      "未確認の投稿はありません。";
+
+    return;
+  }
+
+
+  message.textContent =
+    "確認待ち：" +
+    posts.length +
+    "件";
+
+
+  posts.forEach(
+    function(post) {
+
+      const box =
+        document.createElement(
+          "div"
+        );
+
+      box.className =
+        "post";
+
+
+      const header =
+        document.createElement(
+          "div"
+        );
+
+      header.className =
+        "postHeader";
+
+
+      const name =
+        document.createElement(
+          "div"
+        );
+
+      name.className =
+        "name";
+
+      name.textContent =
+        post.name +
+        "（" +
+        post.userId +
+        "）";
+
+
+      const date =
+        document.createElement(
+          "div"
+        );
+
+      date.className =
+        "date";
+
+      date.textContent =
+        post.date;
+
+
+      header.appendChild(
+        name
+      );
+
+      header.appendChild(
+        date
+      );
+
+
+      box.appendChild(
+        header
+      );
+
+
+      const title =
+        document.createElement(
+          "div"
+        );
+
+      title.className =
+        "title";
+
+      title.textContent =
+        post.title;
+
+
+      box.appendChild(
+        title
+      );
+
+
+      if (
+        post.photoUrl
+      ) {
+
+        const img =
+          document.createElement(
+            "img"
+          );
+
+        img.className =
+          "image";
+
+        img.src =
+          post.photoUrl;
+
+        img.alt =
+          "投稿写真";
+
+
+        box.appendChild(
+          img
+        );
+
+      }
+
+
+      box.appendChild(
+        createSection(
+          "✏️ 本人の文章",
+          post.article,
+          "original"
+        )
+      );
+
+
+      box.appendChild(
+        createSection(
+          "✅ AI添削",
+          post.corrected,
+          "corrected"
+        )
+      );
+
+
+      box.appendChild(
+        createSection(
+          "📚 文法ポイント",
+          post.grammar,
+          "grammar"
+        )
+      );
+
+
+      if (
+        post.advice
+      ) {
+
+        box.appendChild(
+          createSection(
+            "💡 一言アドバイス",
+            post.advice,
+            "advice"
+          )
+        );
+
+      }
+
+
+      const button =
+        document.createElement(
+          "button"
+        );
+
+      button.className =
+        "approveButton";
+
+      button.textContent =
+        "承認して公開 ＋5PT";
+
+
+      button.onclick =
+        function() {
+
+          if (
+            !confirm(
+              "この投稿を公開して5ポイントを付与しますか？"
+            )
+          ) {
+            return;
+          }
+
+
+          button.disabled =
+            true;
+
+          button.textContent =
+            "処理中...";
+
+
+          callApi(
+            "approvePost",
+            post.postId
+          );
+
+        };
+
+
+      box.appendChild(
+        button
+      );
+
+
+      list.appendChild(
+        box
+      );
+
+    }
+  );
+
+}
+
+
+function createSection(
+  title,
+  text,
+  className
+) {
+
+  const section =
+    document.createElement(
+      "div"
+    );
+
+  section.className =
+    "section " +
+    className;
+
+
+  const heading =
+    document.createElement(
+      "div"
+    );
+
+  heading.className =
+    "sectionTitle";
+
+  heading.textContent =
+    title;
+
+
+  const body =
+    document.createElement(
+      "div"
+    );
+
+  body.className =
+    "sectionText";
+
+  body.textContent =
+    text || "";
+
+
+  section.appendChild(
+    heading
+  );
+
+  section.appendChild(
+    body
+  );
+
+
+  return section;
+
+}
+
+
+callApi(
+  "getPendingPosts"
+);
+
+</script>
+
+</body>
+
+</html>
