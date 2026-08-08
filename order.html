@@ -2,20 +2,13 @@
 <html lang="ja">
 
 <head>
-
 <meta charset="UTF-8">
-
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1"
->
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>注文フォーム</title>
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <style>
-
 body {
   font-family: sans-serif;
   background: #f5f5f5;
@@ -105,9 +98,7 @@ button:disabled {
   font-weight: bold;
   font-size: 22px;
 }
-
 </style>
-
 </head>
 
 <body>
@@ -117,40 +108,24 @@ button:disabled {
 <h2>注文フォーム</h2>
 
 <div class="userBox">
-
   <div>
     利用者ID：
-    <strong id="userIdText">
-      確認中...
-    </strong>
+    <strong id="userIdText">確認中...</strong>
   </div>
 
   <div>
     お名前：
-    <strong id="userNameText">
-      確認中...
-    </strong>
+    <strong id="userNameText">確認中...</strong>
   </div>
-
 </div>
 
-
-<label for="product">
-商品
-</label>
+<label for="product">商品</label>
 
 <select id="product">
-
-  <option value="">
-    商品を選択してください
-  </option>
-
+  <option value="">商品を選択してください</option>
 </select>
 
-
-<label for="qty">
-数量
-</label>
+<label for="qty">数量</label>
 
 <input
   id="qty"
@@ -159,16 +134,12 @@ button:disabled {
   min="1"
 >
 
-
-<label for="date">
-配達希望日
-</label>
+<label for="date">配達希望日</label>
 
 <input
   id="date"
   type="date"
 >
-
 
 <button
   id="confirmButton"
@@ -179,11 +150,9 @@ button:disabled {
 注文確認
 </button>
 
-
 <div id="message">
 LINE情報を確認しています...
 </div>
-
 
 <div id="confirm">
 
@@ -202,9 +171,6 @@ LINE情報を確認しています...
 </div>
 
 </div>
-
-
-<!-- Apps Scriptへ送信する非表示フォーム -->
 
 <form
   id="apiForm"
@@ -245,35 +211,26 @@ LINE情報を確認しています...
 
 </form>
 
-
 <iframe
   name="resultFrame"
   id="resultFrame"
   style="display:none;"
 ></iframe>
 
-
 <script>
-
-/* ==============================
-   設定
-================================ */
 
 const LIFF_ID =
   "2011016159-YnmXbx1i";
 
+const ORDER_PAGE_URL =
+  "https://hyoshioka110-cmd.github.io/User-Register/order.html";
+
 const ORDER_GAS_URL =
   "https://script.google.com/macros/s/AKfycbwg6eVWj-IGAif9hTAOVjn1joTCQveAALD3qfotkySfRKiOc5o5ecn0aaJr5iWNw_rfsg/exec";
 
-
 let lineUserId = "";
-
 let currentUser = null;
 
-
-/* ==============================
-   LIFF初期化
-================================ */
 
 async function initialize() {
 
@@ -294,7 +251,9 @@ async function initialize() {
       message.textContent =
         "LINEにログインします...";
 
-      liff.login();
+      liff.login({
+        redirectUri: ORDER_PAGE_URL
+      });
 
       return;
     }
@@ -322,10 +281,6 @@ async function initialize() {
 }
 
 
-/* ==============================
-   初期情報取得
-================================ */
-
 function loadOrderData() {
 
   document
@@ -343,10 +298,6 @@ function loadOrderData() {
 }
 
 
-/* ==============================
-   Apps Scriptへ送信
-================================ */
-
 function submitApi() {
 
   const form =
@@ -359,10 +310,6 @@ function submitApi() {
 
 }
 
-
-/* ==============================
-   Apps Scriptから結果受信
-================================ */
 
 window.addEventListener(
   "message",
@@ -382,7 +329,6 @@ window.addEventListener(
     const message =
       document.getElementById("message");
 
-
     if (!result.ok) {
 
       message.textContent =
@@ -395,7 +341,6 @@ window.addEventListener(
 
       return;
     }
-
 
     if (
       result.action ===
@@ -419,14 +364,12 @@ window.addEventListener(
         .textContent =
         result.name;
 
-
       const select =
         document
           .getElementById("product");
 
       select.innerHTML =
         '<option value="">商品を選択してください</option>';
-
 
       result.products
         .forEach(function(item) {
@@ -452,18 +395,15 @@ window.addEventListener(
 
         });
 
-
       document
         .getElementById("confirmButton")
         .disabled =
         false;
 
-
       message.textContent =
         "商品・数量・配達希望日を入力してください。";
 
     }
-
 
     if (
       result.action ===
@@ -476,12 +416,10 @@ window.addEventListener(
       message.className =
         "success";
 
-
       document
         .getElementById("confirm")
         .style.display =
         "none";
-
 
       document
         .getElementById("product")
@@ -503,17 +441,23 @@ window.addEventListener(
         .disabled =
         true;
 
+      document
+        .getElementById("sendButton")
+        .disabled =
+        true;
+
     }
 
   }
 );
 
 
-/* ==============================
-   注文確認
-================================ */
-
 function confirmOrder() {
+
+  if (!currentUser) {
+    alert("利用者情報を確認できていません。");
+    return;
+  }
 
   const product =
     document
@@ -530,7 +474,6 @@ function confirmOrder() {
       .getElementById("date")
       .value;
 
-
   if (product === "") {
 
     alert(
@@ -539,7 +482,6 @@ function confirmOrder() {
 
     return;
   }
-
 
   if (
     qty === "" ||
@@ -553,7 +495,6 @@ function confirmOrder() {
     return;
   }
 
-
   if (date === "") {
 
     alert(
@@ -562,7 +503,6 @@ function confirmOrder() {
 
     return;
   }
-
 
   document
     .getElementById("confirmText")
@@ -583,12 +523,10 @@ function confirmOrder() {
       "<br>配達日：" +
       date;
 
-
   document
     .getElementById("confirm")
     .style.display =
     "block";
-
 
   document
     .getElementById("confirm")
@@ -599,10 +537,6 @@ function confirmOrder() {
 }
 
 
-/* ==============================
-   注文確定
-================================ */
-
 function sendOrder() {
 
   const sendButton =
@@ -612,24 +546,20 @@ function sendOrder() {
   sendButton.disabled =
     true;
 
-
   document
     .getElementById("message")
     .textContent =
     "注文を送信しています...";
-
 
   document
     .getElementById("action")
     .value =
     "saveOrder";
 
-
   document
     .getElementById("sendLineUserId")
     .value =
     lineUserId;
-
 
   document
     .getElementById("sendProduct")
@@ -638,14 +568,12 @@ function sendOrder() {
       .getElementById("product")
       .value;
 
-
   document
     .getElementById("sendQty")
     .value =
     document
       .getElementById("qty")
       .value;
-
 
   document
     .getElementById("sendDate")
@@ -654,20 +582,14 @@ function sendOrder() {
       .getElementById("date")
       .value;
 
-
   submitApi();
 
 }
 
-
-/* ==============================
-   開始
-================================ */
 
 initialize();
 
 </script>
 
 </body>
-
 </html>
