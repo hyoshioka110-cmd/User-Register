@@ -1,1 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日本語ブログ投稿</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+body{font-family:sans-serif;background:#f5f5f5;margin:0;padding:18px;font-size:18px}
+.box{max-width:640px;margin:20px auto;background:white;padding:24px;border-radius:14px;box-sizing:border-box}
+h1{text-align:center;font-size:30px;margin-top:4px}
+.description,.userBox,.pointNotice,.previewBox{padding:16px;border-radius:10px;line-height:1.7}
+.description{background:#f7f7f7;margin-bottom:20px}
+.userBox{background:#f1f8f3;margin-bottom:22px}
+.pointNotice{margin-top:18px;background:#fff8e1}
+label{display:block;margin-top:22px;margin-bottom:8px;font-weight:bold;font-size:20px}
+input,select,textarea{width:100%;box-sizing:border-box;font-size:20px;padding:14px;border:1px solid #aaa;border-radius:10px;background:white}
+input,select{min-height:58px}
+textarea{min-height:180px;resize:vertical;line-height:1.6}
+button{width:100%;min-height:60px;padding:15px;margin-top:22px;font-size:20px;font-weight:bold;border:none;border-radius:10px}
+button:disabled{background:#aaa!important}
+.aiButton{background:#4285f4;color:#fff}
+.submitButton{background:#06C755;color:#fff}
+.previewBox{display:none;margin-top:24px;border:1px solid #ccc;background:#fafafa}
+.previewSection{margin-top:18px}
+.previewTitle{font-weight:bold;margin-bottom:7px;font-size:19px}
+.previewText{white-space:pre-wrap;line-height:1.7}
+#imagePreview{display:none;width:100%;max-height:360px;object-fit:contain;margin-top:12px;border-radius:10px;background:#eee}
+#message{margin-top:18px;text-align:center;line-height:1.6;white-space:pre-wrap}
+.small{font-size:15px;color:#666;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="box">
+<h1>日本語ブログ</h1>
+<div class="description">日本で驚いたこと、楽しかったこと、困ったことなどを日本語で書いてください。<br><br>AIが自然な日本語に添削し、文法ポイントと「今日の一言アドバイス」も説明します。</div>
+<div class="userBox">
+<div>利用者ID：<strong id="userIdText">確認中...</strong></div>
+<div>お名前：<strong id="userNameText">確認中...</strong></div>
+</div>
+<label for="title">タイトル</label>
+<input id="title" type="text" placeholder="例：初めて日本の電車に乗りました">
+<label for="article">本人の日本語</label>
+<textarea id="article" placeholder="日本で感じたことを日本語で書いてください"></textarea>
+<label for="mood">今日の気分</label>
+<select id="mood">
+<option value="">選んでください</option>
+<option value="とても楽しい">😄 とても楽しい</option>
+<option value="楽しい">🙂 楽しい</option>
+<option value="普通">😐 普通</option>
+<option value="少し大変">😟 少し大変</option>
+<option value="困っている">😢 困っている</option>
+</select>
+<label for="imageInput">写真（任意）</label>
+<input id="imageInput" type="file" accept="image/*">
+<div class="small">スマホの写真は自動的に縮小して送信します。</div>
+<img id="imagePreview" alt="画像プレビュー">
+<button id="aiButton" class="aiButton" type="button" onclick="runAiCorrection()" disabled>AIで日本語を添削する</button>
+<div id="aiResult" class="previewBox">
+<div class="previewSection"><div class="previewTitle">✏️ 本人の文章</div><div id="originalText" class="previewText"></div></div>
+<div class="previewSection"><div class="previewTitle">✅ AI添削後</div><div id="correctedText" class="previewText"></div></div>
+<div class="previewSection"><div class="previewTitle">📚 文法ポイント</div><div id="grammarText" class="previewText"></div></div>
+<div class="previewSection"><div class="previewTitle">💡 今日の一言アドバイス</div><div id="adviceText" class="previewText"></div></div>
+</div>
+<div class="pointNotice">管理者の確認後に公開されると、<strong>5ポイント</strong>が付与されます。</div>
+<button id="submitButton" class="submitButton" type="button" onclick="submitPost()" disabled>この内容で投稿する</button>
+<div id="message">LINE情報を確認しています...</div>
+</div>
+
+<form id="apiForm" method="post" target="resultFrame" style="display:none;">
+<input type="hidden" name="action" id="action">
+<input type="hidden" name="lineUserId" id="sendLineUserId">
+<input type="hidden" name="title" id="sendTitle">
+<input type="hidden" name="article" id="sendArticle">
+<input type="hidden" name="mood" id="sendMood">
+<input type="hidden" name="corrected" id="sendCorrected">
+<input type="hidden" name="grammar" id="sendGrammar">
+<input type="hidden" name="advice" id="sendAdvice">
+<input type="hidden" name="imageBase64" id="sendImageBase64">
+<input type="hidden" name="imageName" id="sendImageName">
+<input type="hidden" name="imageType" id="sendImageType">
+</form>
+<iframe name="resultFrame" id="resultFrame" style="display:none;"></iframe>
+
+<script>
+const LIFF_ID="2011016159-YnmXbx1i";
+const BLOG_PAGE_URL="https://hyoshioka110-cmd.github.io/User-Register/blog.html";
+const BLOG_GAS_URL="https://script.google.com/macros/s/AKfycbyXhyaC-7Qd3vDRR9u9ovbbGA0cA4X002JdMe1OxVvWw7-XE4OL7dyB9DZaV42kHcJyqw/exec";
+
+let lineUserId="",currentUser=null,aiCorrected="",aiGrammar="",aiAdvice="",imageBase64="",imageName="",imageType="";
+
+async function initialize(){
+ const message=document.getElementById("message");
+ try{
+  message.textContent="LINE情報を確認しています...";
+  await liff.init({liffId:LIFF_ID});
+  if(!liff.isLoggedIn()){
+   message.textContent="LINEにログインします...";
+   liff.login({redirectUri:BLOG_PAGE_URL});
+   return;
+  }
+  const profile=await liff.getProfile();
+  lineUserId=profile.userId;
+  message.textContent="利用者情報を確認しています...";
+  document.getElementById("action").value="initBlog";
+  document.getElementById("sendLineUserId").value=lineUserId;
+  submitApi();
+ }catch(error){
+  console.error(error);
+  message.textContent="LINE情報を取得できませんでした。\nLINEからもう一度開いてください。";
+ }
+}
+function submitApi(){
+ const form=document.getElementById("apiForm");
+ form.action=BLOG_GAS_URL;
+ form.submit();
+}
+window.addEventListener("message",function(event){
+ if(!event.data||event.data.type!=="blogSystemResult")return;
+ const result=event.data.data;
+ const message=document.getElementById("message");
+ if(!result.ok){
+  message.textContent=result.message||"エラーが発生しました。";
+  document.getElementById("aiButton").disabled=false;
+  document.getElementById("submitButton").disabled=(aiCorrected==="");
+  return;
+ }
+ if(result.action==="initBlog"){
+  currentUser={userId:result.userId,name:result.name};
+  document.getElementById("userIdText").textContent=result.userId;
+  document.getElementById("userNameText").textContent=result.name;
+  document.getElementById("aiButton").disabled=false;
+  message.textContent="タイトルと日本語の文章を入力してください。";
+  return;
+ }
+ if(result.action==="aiCorrect"){
+  aiCorrected=result.corrected||"";
+  aiGrammar=result.grammar||"";
+  aiAdvice=result.advice||"";
+  document.getElementById("originalText").textContent=document.getElementById("article").value;
+  document.getElementById("correctedText").textContent=aiCorrected;
+  document.getElementById("grammarText").textContent=aiGrammar;
+  document.getElementById("adviceText").textContent=aiAdvice;
+  document.getElementById("aiResult").style.display="block";
+  document.getElementById("aiButton").disabled=false;
+  document.getElementById("submitButton").disabled=false;
+  message.textContent="AI添削が完了しました。内容を確認して投稿してください。";
+  document.getElementById("aiResult").scrollIntoView({behavior:"smooth",block:"start"});
+  return;
+ }
+ if(result.action==="savePost"){
+  message.textContent=result.message;
+  ["submitButton","aiButton","title","article","mood","imageInput"].forEach(id=>document.getElementById(id).disabled=true);
+ }
+});
+
+function runAiCorrection(){
+ const title=document.getElementById("title").value.trim();
+ const article=document.getElementById("article").value.trim();
+ if(!currentUser){alert("利用者情報を確認中です。");return;}
+ if(title===""){alert("タイトルを入力してください。");return;}
+ if(article===""){alert("日本語の文章を入力してください。");return;}
+ document.getElementById("aiButton").disabled=true;
+ document.getElementById("submitButton").disabled=true;
+ document.getElementById("message").textContent="AIが日本語を添削しています...";
+ document.getElementById("action").value="aiCorrect";
+ document.getElementById("sendLineUserId").value=lineUserId;
+ document.getElementById("sendArticle").value=article;
+ submitApi();
+}
+
+document.getElementById("imageInput").addEventListener("change",async function(event){
+ const file=event.target.files&&event.target.files[0];
+ if(!file){
+  imageBase64="";imageName="";imageType="";
+  document.getElementById("imagePreview").style.display="none";
+  return;
+ }
+ if(!file.type.startsWith("image/")){alert("画像ファイルを選択してください。");event.target.value="";return;}
+ try{
+  const compressed=await compressImage(file,1280,0.78);
+  imageBase64=compressed.dataUrl;
+  imageName=buildImageName(file.name);
+  imageType=compressed.mimeType;
+  const preview=document.getElementById("imagePreview");
+  preview.src=imageBase64;
+  preview.style.display="block";
+ }catch(error){console.error(error);alert("画像を読み込めませんでした。");}
+});
+
+function compressImage(file,maxSize,quality){
+ return new Promise(function(resolve,reject){
+  const reader=new FileReader();
+  reader.onload=function(){
+   const img=new Image();
+   img.onload=function(){
+    let width=img.width,height=img.height;
+    if(width>maxSize||height>maxSize){
+     const ratio=Math.min(maxSize/width,maxSize/height);
+     width=Math.round(width*ratio);
+     height=Math.round(height*ratio);
+    }
+    const canvas=document.createElement("canvas");
+    canvas.width=width;canvas.height=height;
+    const ctx=canvas.getContext("2d");
+    ctx.drawImage(img,0,0,width,height);
+    const mimeType="image/jpeg";
+    const dataUrl=canvas.toDataURL(mimeType,quality);
+    resolve({dataUrl,mimeType});
+   };
+   img.onerror=reject;
+   img.src=reader.result;
+  };
+  reader.onerror=reject;
+  reader.readAsDataURL(file);
+ });
+}
+function buildImageName(originalName){
+ const base=String(originalName||"photo").replace(/\.[^/.]+$/,"").replace(/[^a-zA-Z0-9_\-]/g,"_");
+ return "blog_"+Date.now()+"_"+base+".jpg";
+}
+
+function submitPost(){
+ if(!currentUser){alert("利用者情報を確認できていません。");return;}
+ const title=document.getElementById("title").value.trim();
+ const article=document.getElementById("article").value.trim();
+ const mood=document.getElementById("mood").value;
+ if(title===""){alert("タイトルを入力してください。");return;}
+ if(article===""){alert("日本語の文章を入力してください。");return;}
+ if(mood===""){alert("今日の気分を選んでください。");return;}
+ if(aiCorrected===""){alert("先に「AIで日本語を添削する」を押してください。");return;}
+ document.getElementById("submitButton").disabled=true;
+ document.getElementById("message").textContent="投稿を送信しています...";
+ document.getElementById("action").value="savePost";
+ document.getElementById("sendLineUserId").value=lineUserId;
+ document.getElementById("sendTitle").value=title;
+ document.getElementById("sendArticle").value=article;
+ document.getElementById("sendMood").value=mood;
+ document.getElementById("sendCorrected").value=aiCorrected;
+ document.getElementById("sendGrammar").value=aiGrammar;
+ document.getElementById("sendAdvice").value=aiAdvice;
+ document.getElementById("sendImageBase64").value=imageBase64;
+ document.getElementById("sendImageName").value=imageName;
+ document.getElementById("sendImageType").value=imageType;
+ submitApi();
+}
+initialize();
+</script>
+</body>
+</html>
 
