@@ -2,6 +2,7 @@
 <html lang="ja">
 
 <head>
+
 <meta charset="UTF-8">
 
 <meta
@@ -45,20 +46,77 @@ h2 {
   line-height: 1.8;
 }
 
-.totalBox {
+.amountBox {
+  border: 1px solid #cccccc;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-top: 18px;
+}
+
+.amountLabel {
+  font-size: 19px;
+}
+
+.amount {
+  font-size: 34px;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+.pointBox {
+  background: #fff8e1;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.pointTitle {
+  text-align: center;
+  font-size: 19px;
+}
+
+.pointAmount {
+  text-align: center;
+  font-size: 30px;
+  font-weight: bold;
+  margin: 10px 0 18px;
+}
+
+.usePointButton {
+  width: 100%;
+  min-height: 58px;
+  font-size: 19px;
+  font-weight: bold;
+  background: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 10px;
+}
+
+.usePointButton.selected {
+  background: #e67e22;
+}
+
+.discountBox {
+  margin-top: 20px;
+  line-height: 2;
+}
+
+.paymentBox {
   border: 2px solid #06C755;
   border-radius: 12px;
   padding: 22px;
   text-align: center;
-  margin-top: 20px;
+  margin-top: 22px;
 }
 
-.totalLabel {
+.paymentLabel {
   font-size: 20px;
 }
 
-.total {
-  font-size: 36px;
+.paymentAmount {
+  font-size: 38px;
   font-weight: bold;
   margin-top: 8px;
 }
@@ -72,11 +130,34 @@ h2 {
   white-space: pre-line;
 }
 
+.settlementButton {
+  width: 100%;
+  min-height: 62px;
+  margin-top: 26px;
+  font-size: 21px;
+  font-weight: bold;
+  background: #06C755;
+  color: white;
+  border: none;
+  border-radius: 10px;
+}
+
+.settlementButton:disabled {
+  background: #aaaaaa;
+}
+
 #message {
   text-align: center;
   margin-top: 20px;
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+.notice {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #555;
+  margin-top: 14px;
 }
 
 </style>
@@ -93,34 +174,98 @@ h2 {
 
   <div>
     利用者ID：
-    <strong id="userIdText">確認中...</strong>
+    <strong id="userIdText">
+      確認中...
+    </strong>
   </div>
 
   <div>
     お名前：
-    <strong id="userNameText">確認中...</strong>
+    <strong id="userNameText">
+      確認中...
+    </strong>
   </div>
 
 </div>
 
+
 <div id="message">
 LINE情報を確認しています...
 </div>
+
 
 <div
   id="settlementArea"
   style="display:none;"
 >
 
-  <div class="totalBox">
+  <div class="amountBox">
 
-    <div class="totalLabel">
+    <div class="amountLabel">
       未払い金額
     </div>
 
     <div
-      class="total"
+      class="amount"
       id="totalText"
+    >
+      ￥0
+    </div>
+
+  </div>
+
+
+  <div class="pointBox">
+
+    <div class="pointTitle">
+      現在のポイント
+    </div>
+
+    <div
+      class="pointAmount"
+      id="pointText"
+    >
+      0 PT
+    </div>
+
+    <button
+      type="button"
+      id="usePointButton"
+      class="usePointButton"
+      onclick="togglePoints()"
+    >
+      全ポイントを利用する
+    </button>
+
+    <div class="notice">
+      ポイントを利用する場合でも、
+      入金確認まではポイントは減りません。
+    </div>
+
+  </div>
+
+
+  <div class="discountBox">
+
+    <div>
+      ポイント値引き：
+      <strong id="discountText">
+        ￥0
+      </strong>
+    </div>
+
+  </div>
+
+
+  <div class="paymentBox">
+
+    <div class="paymentLabel">
+      お支払い金額
+    </div>
+
+    <div
+      class="paymentAmount"
+      id="paymentText"
     >
       ￥0
     </div>
@@ -135,6 +280,16 @@ LINE情報を確認しています...
     <div id="bankText"></div>
 
   </div>
+
+
+  <button
+    type="button"
+    id="settlementButton"
+    class="settlementButton"
+    onclick="createSettlement()"
+  >
+    この内容で精算する
+  </button>
 
 </div>
 
@@ -151,13 +306,19 @@ LINE情報を確認しています...
 <input
   type="hidden"
   name="action"
-  value="getSettlement"
+  id="action"
 >
 
 <input
   type="hidden"
   name="lineUserId"
   id="sendLineUserId"
+>
+
+<input
+  type="hidden"
+  name="usePoints"
+  id="sendUsePoints"
 >
 
 </form>
@@ -181,8 +342,19 @@ const SETTLEMENT_PAGE_URL =
 const ORDER_GAS_URL =
   "https://script.google.com/macros/s/AKfycbwg6eVWj-IGAif9hTAOVjn1joTCQveAALD3qfotkySfRKiOc5o5ecn0aaJr5iWNw_rfsg/exec";
 
+
 let lineUserId = "";
 
+let totalAmount = 0;
+
+let pointBalance = 0;
+
+let usePoints = false;
+
+
+/* ==============================
+   LINE初期化
+================================ */
 
 async function initialize() {
 
@@ -199,9 +371,6 @@ async function initialize() {
     });
 
     if (!liff.isLoggedIn()) {
-
-      message.textContent =
-        "LINEにログインします...";
 
       liff.login({
         redirectUri:
@@ -220,19 +389,7 @@ async function initialize() {
     message.textContent =
       "精算情報を取得しています...";
 
-    document
-      .getElementById("sendLineUserId")
-      .value =
-      lineUserId;
-
-    const form =
-      document
-        .getElementById("apiForm");
-
-    form.action =
-      ORDER_GAS_URL;
-
-    form.submit();
+    loadSettlement();
 
   } catch (error) {
 
@@ -246,6 +403,48 @@ async function initialize() {
 }
 
 
+/* ==============================
+   精算情報取得
+================================ */
+
+function loadSettlement() {
+
+  document
+    .getElementById("action")
+    .value =
+    "getSettlement";
+
+  document
+    .getElementById("sendLineUserId")
+    .value =
+    lineUserId;
+
+  submitApi();
+
+}
+
+
+/* ==============================
+   API送信
+================================ */
+
+function submitApi() {
+
+  const form =
+    document.getElementById("apiForm");
+
+  form.action =
+    ORDER_GAS_URL;
+
+  form.submit();
+
+}
+
+
+/* ==============================
+   API結果
+================================ */
+
 window.addEventListener(
   "message",
   function(event) {
@@ -257,6 +456,7 @@ window.addEventListener(
     ) {
       return;
     }
+
 
     const result =
       event.data.data;
@@ -270,56 +470,351 @@ window.addEventListener(
       message.textContent =
         result.message;
 
+      document
+        .getElementById("settlementButton")
+        .disabled =
+        false;
+
       return;
     }
 
 
     if (
-      result.action !==
+      result.action ===
       "getSettlement"
     ) {
+
+      document
+        .getElementById("userIdText")
+        .textContent =
+        result.userId;
+
+      document
+        .getElementById("userNameText")
+        .textContent =
+        result.name;
+
+
+      totalAmount =
+        Number(
+          result.total || 0
+        );
+
+      pointBalance =
+        Number(
+          result.pointBalance || 0
+        );
+
+
+      document
+        .getElementById("totalText")
+        .textContent =
+        yen(totalAmount);
+
+
+      document
+        .getElementById("pointText")
+        .textContent =
+        pointBalance
+          .toLocaleString() +
+        " PT";
+
+
+      document
+        .getElementById("bankText")
+        .textContent =
+        result.bank;
+
+
+      usePoints =
+        false;
+
+
+      updateAmounts();
+
+
+      document
+        .getElementById("settlementArea")
+        .style.display =
+        "block";
+
+
+      if (totalAmount <= 0) {
+
+        message.textContent =
+          "現在、未払いの注文はありません。";
+
+        document
+          .getElementById("settlementButton")
+          .disabled =
+          true;
+
+      } else {
+
+        message.textContent =
+          "";
+
+      }
+
+
+      if (pointBalance <= 0) {
+
+        document
+          .getElementById("usePointButton")
+          .disabled =
+          true;
+
+        document
+          .getElementById("usePointButton")
+          .textContent =
+          "利用できるポイントはありません";
+
+      }
+
       return;
     }
 
 
-    document
-      .getElementById("userIdText")
-      .textContent =
-      result.userId;
+    if (
+      result.action ===
+      "createSettlement"
+    ) {
+
+      document
+        .getElementById("settlementButton")
+        .disabled =
+        true;
 
 
-    document
-      .getElementById("userNameText")
-      .textContent =
-      result.name;
+      document
+        .getElementById("usePointButton")
+        .disabled =
+        true;
 
 
-    document
-      .getElementById("totalText")
-      .textContent =
-      "￥" +
-      Number(
-        result.total
-      ).toLocaleString();
+      document
+        .getElementById("discountText")
+        .textContent =
+        "－" +
+        yen(
+          Number(
+            result.pointUsed || 0
+          )
+        );
 
 
-    document
-      .getElementById("bankText")
-      .textContent =
-      result.bank;
+      document
+        .getElementById("paymentText")
+        .textContent =
+        yen(
+          Number(
+            result.paymentAmount || 0
+          )
+        );
 
 
-    document
-      .getElementById("settlementArea")
-      .style.display =
-      "block";
+      message.textContent =
+        result.message +
+        "\n\n精算ID：" +
+        result.settlementId;
 
-
-    message.textContent =
-      "";
+      return;
+    }
 
   }
 );
+
+
+/* ==============================
+   ポイント利用切替
+================================ */
+
+function togglePoints() {
+
+  if (pointBalance <= 0) {
+    return;
+  }
+
+
+  usePoints =
+    !usePoints;
+
+
+  const button =
+    document
+      .getElementById("usePointButton");
+
+
+  if (usePoints) {
+
+    button.textContent =
+      "ポイントを利用する ✓";
+
+    button.classList.add(
+      "selected"
+    );
+
+  } else {
+
+    button.textContent =
+      "全ポイントを利用する";
+
+    button.classList.remove(
+      "selected"
+    );
+
+  }
+
+
+  updateAmounts();
+
+}
+
+
+/* ==============================
+   金額計算
+================================ */
+
+function updateAmounts() {
+
+  let discount =
+    0;
+
+
+  if (usePoints) {
+
+    discount =
+      Math.min(
+        pointBalance,
+        totalAmount
+      );
+
+  }
+
+
+  const payment =
+    Math.max(
+      totalAmount -
+      discount,
+      0
+    );
+
+
+  document
+    .getElementById("discountText")
+    .textContent =
+    discount > 0
+      ? "－" + yen(discount)
+      : yen(0);
+
+
+  document
+    .getElementById("paymentText")
+    .textContent =
+    yen(payment);
+
+}
+
+
+/* ==============================
+   精算申請
+================================ */
+
+function createSettlement() {
+
+  if (totalAmount <= 0) {
+
+    alert(
+      "未払いの注文はありません。"
+    );
+
+    return;
+  }
+
+
+  const discount =
+    usePoints
+      ? Math.min(
+          pointBalance,
+          totalAmount
+        )
+      : 0;
+
+
+  const payment =
+    totalAmount -
+    discount;
+
+
+  const text =
+
+    "未払い金額：" +
+    yen(totalAmount) +
+
+    "\nポイント利用：" +
+    discount +
+    " PT" +
+
+    "\nお支払い金額：" +
+    yen(payment) +
+
+    "\n\nこの内容で精算しますか？";
+
+
+  if (!confirm(text)) {
+    return;
+  }
+
+
+  document
+    .getElementById("settlementButton")
+    .disabled =
+    true;
+
+
+  document
+    .getElementById("message")
+    .textContent =
+    "精算情報を登録しています...";
+
+
+  document
+    .getElementById("action")
+    .value =
+    "createSettlement";
+
+
+  document
+    .getElementById("sendLineUserId")
+    .value =
+    lineUserId;
+
+
+  document
+    .getElementById("sendUsePoints")
+    .value =
+    usePoints
+      ? "true"
+      : "false";
+
+
+  submitApi();
+
+}
+
+
+/* ==============================
+   円表示
+================================ */
+
+function yen(value) {
+
+  return "￥" +
+    Number(
+      value || 0
+    ).toLocaleString();
+
+}
 
 
 initialize();
