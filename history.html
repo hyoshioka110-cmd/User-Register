@@ -1,1 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
 
+<head>
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1"
+>
+
+<title>注文履歴</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+
+body {
+  font-family: sans-serif;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 18px;
+  font-size: 18px;
+}
+
+.box {
+  max-width: 650px;
+  margin: 20px auto;
+  background: white;
+  padding: 22px;
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+h2 {
+  text-align: center;
+  font-size: 28px;
+}
+
+.userBox {
+  background: #f1f8f3;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+
+.order {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 16px;
+  line-height: 1.8;
+}
+
+.order strong {
+  font-size: 19px;
+}
+
+#message {
+  margin-top: 20px;
+  text-align: center;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.empty {
+  text-align: center;
+  padding: 25px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>注文履歴</h2>
+
+<div class="userBox">
+
+  <div>
+    利用者ID：
+    <strong id="userIdText">
+      確認中...
+    </strong>
+  </div>
+
+  <div>
+    お名前：
+    <strong id="userNameText">
+      確認中...
+    </strong>
+  </div>
+
+</div>
+
+<div id="message">
+LINE情報を確認しています...
+</div>
+
+<div id="historyList"></div>
+
+</div>
+
+
+<form
+  id="apiForm"
+  method="post"
+  target="resultFrame"
+  style="display:none;"
+>
+
+<input
+  type="hidden"
+  name="action"
+  value="getHistory"
+>
+
+<input
+  type="hidden"
+  name="lineUserId"
+  id="sendLineUserId"
+>
+
+</form>
+
+
+<iframe
+  name="resultFrame"
+  id="resultFrame"
+  style="display:none;"
+></iframe>
+
+
+<script>
+
+const LIFF_ID =
+  "2011016159-YnmXbx1i";
+
+const HISTORY_PAGE_URL =
+  "https://hyoshioka110-cmd.github.io/User-Register/history.html";
+
+const ORDER_GAS_URL =
+  "https://script.google.com/macros/s/AKfycbwg6eVWj-IGAif9hTAOVjn1joTCQveAALD3qfotkySfRKiOc5o5ecn0aaJr5iWNw_rfsg/exec";
+
+let lineUserId = "";
+
+
+async function initialize() {
+
+  const message =
+    document.getElementById("message");
+
+  try {
+
+    message.textContent =
+      "LINE情報を確認しています...";
+
+    await liff.init({
+      liffId: LIFF_ID
+    });
+
+    if (!liff.isLoggedIn()) {
+
+      message.textContent =
+        "LINEにログインします...";
+
+      liff.login({
+        redirectUri:
+          HISTORY_PAGE_URL
+      });
+
+      return;
+    }
+
+    const profile =
+      await liff.getProfile();
+
+    lineUserId =
+      profile.userId;
+
+    message.textContent =
+      "注文履歴を取得しています...";
+
+    document
+      .getElementById("sendLineUserId")
+      .value =
+      lineUserId;
+
+    const form =
+      document
+        .getElementById("apiForm");
+
+    form.action =
+      ORDER_GAS_URL;
+
+    form.submit();
+
+  } catch (error) {
+
+    console.error(error);
+
+    message.textContent =
+      "LINE情報を取得できませんでした。";
+
+  }
+
+}
+
+
+window.addEventListener(
+  "message",
+  function(event) {
+
+    if (
+      !event.data ||
+      event.data.type !==
+        "orderSystemResult"
+    ) {
+      return;
+    }
+
+    const result =
+      event.data.data;
+
+    const message =
+      document.getElementById("message");
+
+    const historyList =
+      document.getElementById("historyList");
+
+
+    if (!result.ok) {
+
+      message.textContent =
+        result.message;
+
+      return;
+    }
+
+
+    if (
+      result.action !==
+      "getHistory"
+    ) {
+      return;
+    }
+
+
+    document
+      .getElementById("userIdText")
+      .textContent =
+      result.userId;
+
+    document
+      .getElementById("userNameText")
+      .textContent =
+      result.name;
+
+
+    message.textContent =
+      "";
+
+
+    if (
+      !result.orders ||
+      result.orders.length === 0
+    ) {
+
+      historyList.innerHTML =
+        '<div class="empty">注文履歴はありません。</div>';
+
+      return;
+    }
+
+
+    historyList.innerHTML =
+      "";
+
+
+    result.orders
+      .slice()
+      .reverse()
+      .forEach(function(order) {
+
+        const div =
+          document.createElement(
+            "div"
+          );
+
+        div.className =
+          "order";
+
+
+        div.innerHTML =
+
+          "<strong>" +
+          escapeHtml(
+            order.product
+          ) +
+          "</strong>" +
+
+          "<br>注文日：" +
+          escapeHtml(
+            order.orderDate
+          ) +
+
+          "<br>数量：" +
+          escapeHtml(
+            order.qty
+          ) +
+
+          "<br>単価：￥" +
+          formatNumber(
+            order.price
+          ) +
+
+          "<br>金額：￥" +
+          formatNumber(
+            order.amount
+          ) +
+
+          "<br>配達日：" +
+          escapeHtml(
+            order.delivery
+          ) +
+
+          "<br>支払い：" +
+          escapeHtml(
+            order.payment
+          );
+
+
+        historyList.appendChild(
+          div
+        );
+
+      });
+
+  }
+);
+
+
+function formatNumber(value) {
+
+  const num =
+    Number(value);
+
+  if (
+    Number.isNaN(num)
+  ) {
+    return value;
+  }
+
+  return num
+    .toLocaleString();
+}
+
+
+function escapeHtml(value) {
+
+  return String(
+    value ?? ""
+  )
+  .replaceAll(
+    "&",
+    "&amp;"
+  )
+  .replaceAll(
+    "<",
+    "&lt;"
+  )
+  .replaceAll(
+    ">",
+    "&gt;"
+  )
+  .replaceAll(
+    '"',
+    "&quot;"
+  )
+  .replaceAll(
+    "'",
+    "&#039;"
+  );
+}
+
+
+initialize();
+
+</script>
+
+</body>
+
+</html>
