@@ -1,1 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
 
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1"
+>
+
+<title>注文フォーム</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+
+body {
+  font-family: sans-serif;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 18px;
+  font-size: 20px;
+}
+
+.box {
+  max-width: 520px;
+  margin: 20px auto;
+  padding: 25px;
+  background: white;
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+h2 {
+  text-align: center;
+  font-size: 30px;
+  margin-top: 5px;
+}
+
+.userBox {
+  background: #f1f8f3;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 25px;
+  line-height: 1.7;
+}
+
+label {
+  display: block;
+  margin-top: 22px;
+  margin-bottom: 8px;
+  font-weight: bold;
+  font-size: 21px;
+}
+
+input,
+select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 60px;
+  padding: 15px;
+  font-size: 22px;
+  border: 1px solid #aaa;
+  border-radius: 9px;
+  background: white;
+}
+
+button {
+  width: 100%;
+  min-height: 62px;
+  padding: 15px;
+  margin-top: 28px;
+  font-size: 22px;
+  font-weight: bold;
+  background: #06C755;
+  color: white;
+  border: none;
+  border-radius: 10px;
+}
+
+button:disabled {
+  background: #aaa;
+}
+
+#message {
+  margin-top: 20px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+#confirm {
+  display: none;
+  border: 1px solid #999;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 25px;
+  line-height: 1.8;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>注文フォーム</h2>
+
+<div class="userBox">
+
+  <div>
+    利用者ID：
+    <strong id="userIdText">確認中...</strong>
+  </div>
+
+  <div>
+    お名前：
+    <strong id="userNameText">確認中...</strong>
+  </div>
+
+</div>
+
+
+<label>商品</label>
+
+<select id="product">
+
+  <option value="">
+    商品を選択してください
+  </option>
+
+</select>
+
+
+<label>数量</label>
+
+<input
+  id="qty"
+  type="number"
+  value="1"
+  min="1"
+>
+
+
+<label>配達希望日</label>
+
+<input
+  id="date"
+  type="date"
+>
+
+
+<button
+  id="confirmButton"
+  onclick="confirmOrder()"
+  disabled
+>
+注文確認
+</button>
+
+
+<div id="message">
+LINE情報を確認しています...
+</div>
+
+
+<div id="confirm">
+
+<h3>注文内容確認</h3>
+
+<div id="confirmText"></div>
+
+<button onclick="sendOrder()">
+注文確定
+</button>
+
+</div>
+
+</div>
+
+
+<form
+  id="orderForm"
+  method="post"
+  target="resultFrame"
+  style="display:none;"
+>
+
+<input
+  type="hidden"
+  name="action"
+  value="saveOrder"
+>
+
+<input
+  type="hidden"
+  name="lineUserId"
+  id="sendLineUserId"
+>
+
+<input
+  type="hidden"
+  name="product"
+  id="sendProduct"
+>
+
+<input
+  type="hidden"
+  name="qty"
+  id="sendQty"
+>
+
+<input
+  type="hidden"
+  name="date"
+  id="sendDate"
+>
+
+</form>
+
+
+<iframe
+  name="resultFrame"
+  id="resultFrame"
+  style="display:none;"
+></iframe>
+
+
+<script>
+
+const LIFF_ID =
+  "2011016159-YnmXbx1i";
+
+/*
+ここには後で
+注文システムのApps Script URLを入れます
+*/
+const ORDER_GAS_URL =
+  "ここに注文システムのWebアプリURL";
+
+
+let lineUserId = "";
+
+let currentUser = null;
+
+
+/* LINEユーザーを確認 */
+async function initialize() {
+
+  const message =
+    document.getElementById("message");
+
+  try {
+
+    await liff.init({
+      liffId: LIFF_ID
+    });
+
+    if (!liff.isLoggedIn()) {
+
+      liff.login();
+
+      return;
+    }
+
+    const profile =
+      await liff.getProfile();
+
+    lineUserId =
+      profile.userId;
+
+    message.textContent =
+      "利用者情報を確認しています...";
+
+    /*
+    次の段階でここから
+    利用者マスター照合を行います
+    */
+
+  } catch (error) {
+
+    console.error(error);
+
+    message.textContent =
+      "LINE情報を取得できませんでした。";
+
+  }
+
+}
+
+
+/* 注文内容確認 */
+function confirmOrder() {
+
+  const product =
+    document
+      .getElementById("product")
+      .value;
+
+  const qty =
+    document
+      .getElementById("qty")
+      .value;
+
+  const date =
+    document
+      .getElementById("date")
+      .value;
+
+
+  if (product === "") {
+
+    alert(
+      "商品を選択してください"
+    );
+
+    return;
+  }
+
+
+  if (
+    qty === "" ||
+    Number(qty) < 1
+  ) {
+
+    alert(
+      "数量を入力してください"
+    );
+
+    return;
+  }
+
+
+  if (date === "") {
+
+    alert(
+      "配達希望日を入力してください"
+    );
+
+    return;
+  }
+
+
+  document
+    .getElementById("confirmText")
+    .innerHTML =
+
+      "お名前：" +
+      currentUser.name +
+
+      "<br>商品：" +
+      product +
+
+      "<br>数量：" +
+      qty +
+
+      "<br>配達日：" +
+      date;
+
+
+  document
+    .getElementById("confirm")
+    .style.display =
+    "block";
+}
+
+
+/* 注文確定 */
+function sendOrder() {
+
+  document
+    .getElementById("sendLineUserId")
+    .value =
+    lineUserId;
+
+  document
+    .getElementById("sendProduct")
+    .value =
+    document
+      .getElementById("product")
+      .value;
+
+  document
+    .getElementById("sendQty")
+    .value =
+    document
+      .getElementById("qty")
+      .value;
+
+  document
+    .getElementById("sendDate")
+    .value =
+    document
+      .getElementById("date")
+      .value;
+
+
+  const form =
+    document
+      .getElementById("orderForm");
+
+  form.action =
+    ORDER_GAS_URL;
+
+  form.submit();
+
+
+  document
+    .getElementById("message")
+    .textContent =
+    "注文を送信しています...";
+}
+
+
+initialize();
+
+</script>
+
+</body>
+
+</html>
