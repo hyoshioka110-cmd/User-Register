@@ -160,6 +160,23 @@ h2 {
   margin-top: 14px;
 }
 
+.completeBox {
+  margin-top: 24px;
+  padding: 22px;
+  border: 2px solid #06C755;
+  border-radius: 12px;
+  background: #f1fff5;
+  text-align: center;
+  line-height: 1.8;
+}
+
+.completeTitle {
+  font-size: 25px;
+  font-weight: bold;
+  color: #06C755;
+  margin-bottom: 12px;
+}
+
 </style>
 
 </head>
@@ -290,6 +307,42 @@ LINE情報を確認しています...
   >
     この内容で精算する
   </button>
+
+
+  <div
+    id="completeArea"
+    class="completeBox"
+    style="display:none;"
+  >
+
+    <div class="completeTitle">
+      精算を受け付けました
+    </div>
+
+    <div>
+      お支払い金額：
+      <strong id="completePaymentText">
+        ￥0
+      </strong>
+    </div>
+
+    <div>
+      精算ID：
+      <strong id="completeSettlementId">
+      </strong>
+    </div>
+
+    <br>
+
+    <div>
+      上記金額を振込先へお振込みください。
+    </div>
+
+    <div>
+      入金確認後、注文は「支払い済み」に更新されます。
+    </div>
+
+  </div>
 
 </div>
 
@@ -442,7 +495,7 @@ function submitApi() {
 
 
 /* ==============================
-   API結果
+   API結果受信
 ================================ */
 
 window.addEventListener(
@@ -587,6 +640,12 @@ window.addEventListener(
 
 
       document
+        .getElementById("settlementButton")
+        .textContent =
+        "精算受付完了";
+
+
+      document
         .getElementById("usePointButton")
         .disabled =
         true;
@@ -613,10 +672,38 @@ window.addEventListener(
         );
 
 
-      message.textContent =
-        result.message +
-        "\n\n精算ID：" +
+      document
+        .getElementById("completePaymentText")
+        .textContent =
+        yen(
+          Number(
+            result.paymentAmount || 0
+          )
+        );
+
+
+      document
+        .getElementById("completeSettlementId")
+        .textContent =
         result.settlementId;
+
+
+      document
+        .getElementById("completeArea")
+        .style.display =
+        "block";
+
+
+      message.textContent =
+        "";
+
+
+      document
+        .getElementById("completeArea")
+        .scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
 
       return;
     }
@@ -770,6 +857,12 @@ function createSettlement() {
     .getElementById("settlementButton")
     .disabled =
     true;
+
+
+  document
+    .getElementById("settlementButton")
+    .textContent =
+    "精算処理中...";
 
 
   document
