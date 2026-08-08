@@ -44,33 +44,33 @@ h2 {
   padding: 16px;
   border-radius: 10px;
   margin-bottom: 25px;
-  line-height: 1.7;
+  line-height: 1.8;
 }
 
 label {
   display: block;
-  margin-top: 22px;
+  margin-top: 24px;
   margin-bottom: 8px;
   font-weight: bold;
-  font-size: 21px;
+  font-size: 22px;
 }
 
 input,
 select {
   width: 100%;
   box-sizing: border-box;
-  min-height: 60px;
-  padding: 15px;
-  font-size: 22px;
+  min-height: 64px;
+  padding: 16px;
+  font-size: 23px;
   border: 1px solid #aaa;
-  border-radius: 9px;
+  border-radius: 10px;
   background: white;
 }
 
 button {
   width: 100%;
-  min-height: 62px;
-  padding: 15px;
+  min-height: 64px;
+  padding: 16px;
   margin-top: 28px;
   font-size: 22px;
   font-weight: bold;
@@ -88,6 +88,7 @@ button:disabled {
   margin-top: 20px;
   text-align: center;
   line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 #confirm {
@@ -97,6 +98,12 @@ button:disabled {
   padding: 20px;
   margin-top: 25px;
   line-height: 1.8;
+  background: #fafafa;
+}
+
+.success {
+  font-weight: bold;
+  font-size: 22px;
 }
 
 </style>
@@ -113,18 +120,24 @@ button:disabled {
 
   <div>
     利用者ID：
-    <strong id="userIdText">確認中...</strong>
+    <strong id="userIdText">
+      確認中...
+    </strong>
   </div>
 
   <div>
     お名前：
-    <strong id="userNameText">確認中...</strong>
+    <strong id="userNameText">
+      確認中...
+    </strong>
   </div>
 
 </div>
 
 
-<label>商品</label>
+<label for="product">
+商品
+</label>
 
 <select id="product">
 
@@ -135,7 +148,9 @@ button:disabled {
 </select>
 
 
-<label>数量</label>
+<label for="qty">
+数量
+</label>
 
 <input
   id="qty"
@@ -145,7 +160,9 @@ button:disabled {
 >
 
 
-<label>配達希望日</label>
+<label for="date">
+配達希望日
+</label>
 
 <input
   id="date"
@@ -155,6 +172,7 @@ button:disabled {
 
 <button
   id="confirmButton"
+  type="button"
   onclick="confirmOrder()"
   disabled
 >
@@ -173,7 +191,11 @@ LINE情報を確認しています...
 
 <div id="confirmText"></div>
 
-<button onclick="sendOrder()">
+<button
+  id="sendButton"
+  type="button"
+  onclick="sendOrder()"
+>
 注文確定
 </button>
 
@@ -182,8 +204,10 @@ LINE情報を確認しています...
 </div>
 
 
+<!-- Apps Scriptへ送信する非表示フォーム -->
+
 <form
-  id="orderForm"
+  id="apiForm"
   method="post"
   target="resultFrame"
   style="display:none;"
@@ -192,7 +216,7 @@ LINE情報を確認しています...
 <input
   type="hidden"
   name="action"
-  value="saveOrder"
+  id="action"
 >
 
 <input
@@ -231,15 +255,15 @@ LINE情報を確認しています...
 
 <script>
 
+/* ==============================
+   設定
+================================ */
+
 const LIFF_ID =
   "2011016159-YnmXbx1i";
 
-/*
-ここには後で
-注文システムのApps Script URLを入れます
-*/
 const ORDER_GAS_URL =
-  "ここに注文システムのWebアプリURL";
+  "https://script.google.com/macros/s/AKfycbwg6eVWj-IGAif9hTAOVjn1joTCQveAALD3qfotkySfRKiOc5o5ecn0aaJr5iWNw_rfsg/exec";
 
 
 let lineUserId = "";
@@ -247,7 +271,10 @@ let lineUserId = "";
 let currentUser = null;
 
 
-/* LINEユーザーを確認 */
+/* ==============================
+   LIFF初期化
+================================ */
+
 async function initialize() {
 
   const message =
@@ -255,11 +282,17 @@ async function initialize() {
 
   try {
 
+    message.textContent =
+      "LINE情報を確認しています...";
+
     await liff.init({
       liffId: LIFF_ID
     });
 
     if (!liff.isLoggedIn()) {
+
+      message.textContent =
+        "LINEにログインします...";
 
       liff.login();
 
@@ -273,26 +306,213 @@ async function initialize() {
       profile.userId;
 
     message.textContent =
-      "利用者情報を確認しています...";
+      "利用者情報と商品一覧を取得しています...";
 
-    /*
-    次の段階でここから
-    利用者マスター照合を行います
-    */
+    loadOrderData();
 
   } catch (error) {
 
     console.error(error);
 
     message.textContent =
-      "LINE情報を取得できませんでした。";
+      "LINE情報を取得できませんでした。\nLINEからもう一度開いてください。";
 
   }
 
 }
 
 
-/* 注文内容確認 */
+/* ==============================
+   初期情報取得
+================================ */
+
+function loadOrderData() {
+
+  document
+    .getElementById("action")
+    .value =
+    "initOrder";
+
+  document
+    .getElementById("sendLineUserId")
+    .value =
+    lineUserId;
+
+  submitApi();
+
+}
+
+
+/* ==============================
+   Apps Scriptへ送信
+================================ */
+
+function submitApi() {
+
+  const form =
+    document.getElementById("apiForm");
+
+  form.action =
+    ORDER_GAS_URL;
+
+  form.submit();
+
+}
+
+
+/* ==============================
+   Apps Scriptから結果受信
+================================ */
+
+window.addEventListener(
+  "message",
+  function(event) {
+
+    if (
+      !event.data ||
+      event.data.type !==
+        "orderSystemResult"
+    ) {
+      return;
+    }
+
+    const result =
+      event.data.data;
+
+    const message =
+      document.getElementById("message");
+
+
+    if (!result.ok) {
+
+      message.textContent =
+        result.message;
+
+      document
+        .getElementById("confirmButton")
+        .disabled =
+        true;
+
+      return;
+    }
+
+
+    if (
+      result.action ===
+      "initOrder"
+    ) {
+
+      currentUser = {
+        userId:
+          result.userId,
+        name:
+          result.name
+      };
+
+      document
+        .getElementById("userIdText")
+        .textContent =
+        result.userId;
+
+      document
+        .getElementById("userNameText")
+        .textContent =
+        result.name;
+
+
+      const select =
+        document
+          .getElementById("product");
+
+      select.innerHTML =
+        '<option value="">商品を選択してください</option>';
+
+
+      result.products
+        .forEach(function(item) {
+
+          const option =
+            document.createElement(
+              "option"
+            );
+
+          option.value =
+            item.name;
+
+          option.textContent =
+            item.name +
+            "　￥" +
+            Number(
+              item.price
+            ).toLocaleString();
+
+          select.appendChild(
+            option
+          );
+
+        });
+
+
+      document
+        .getElementById("confirmButton")
+        .disabled =
+        false;
+
+
+      message.textContent =
+        "商品・数量・配達希望日を入力してください。";
+
+    }
+
+
+    if (
+      result.action ===
+      "saveOrder"
+    ) {
+
+      message.textContent =
+        result.message;
+
+      message.className =
+        "success";
+
+
+      document
+        .getElementById("confirm")
+        .style.display =
+        "none";
+
+
+      document
+        .getElementById("product")
+        .disabled =
+        true;
+
+      document
+        .getElementById("qty")
+        .disabled =
+        true;
+
+      document
+        .getElementById("date")
+        .disabled =
+        true;
+
+      document
+        .getElementById("confirmButton")
+        .disabled =
+        true;
+
+    }
+
+  }
+);
+
+
+/* ==============================
+   注文確認
+================================ */
+
 function confirmOrder() {
 
   const product =
@@ -314,7 +534,7 @@ function confirmOrder() {
   if (product === "") {
 
     alert(
-      "商品を選択してください"
+      "商品を選択してください。"
     );
 
     return;
@@ -327,7 +547,7 @@ function confirmOrder() {
   ) {
 
     alert(
-      "数量を入力してください"
+      "数量を正しく入力してください。"
     );
 
     return;
@@ -337,7 +557,7 @@ function confirmOrder() {
   if (date === "") {
 
     alert(
-      "配達希望日を入力してください"
+      "配達希望日を入力してください。"
     );
 
     return;
@@ -348,7 +568,10 @@ function confirmOrder() {
     .getElementById("confirmText")
     .innerHTML =
 
-      "お名前：" +
+      "利用者ID：" +
+      currentUser.userId +
+
+      "<br>お名前：" +
       currentUser.name +
 
       "<br>商品：" +
@@ -365,16 +588,48 @@ function confirmOrder() {
     .getElementById("confirm")
     .style.display =
     "block";
+
+
+  document
+    .getElementById("confirm")
+    .scrollIntoView({
+      behavior: "smooth"
+    });
+
 }
 
 
-/* 注文確定 */
+/* ==============================
+   注文確定
+================================ */
+
 function sendOrder() {
+
+  const sendButton =
+    document
+      .getElementById("sendButton");
+
+  sendButton.disabled =
+    true;
+
+
+  document
+    .getElementById("message")
+    .textContent =
+    "注文を送信しています...";
+
+
+  document
+    .getElementById("action")
+    .value =
+    "saveOrder";
+
 
   document
     .getElementById("sendLineUserId")
     .value =
     lineUserId;
+
 
   document
     .getElementById("sendProduct")
@@ -383,12 +638,14 @@ function sendOrder() {
       .getElementById("product")
       .value;
 
+
   document
     .getElementById("sendQty")
     .value =
     document
       .getElementById("qty")
       .value;
+
 
   document
     .getElementById("sendDate")
@@ -398,22 +655,14 @@ function sendOrder() {
       .value;
 
 
-  const form =
-    document
-      .getElementById("orderForm");
+  submitApi();
 
-  form.action =
-    ORDER_GAS_URL;
-
-  form.submit();
-
-
-  document
-    .getElementById("message")
-    .textContent =
-    "注文を送信しています...";
 }
 
+
+/* ==============================
+   開始
+================================ */
 
 initialize();
 
