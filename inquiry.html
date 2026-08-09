@@ -1,1 +1,454 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>お問い合わせ</title>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+body{
+  font-family:sans-serif;
+  background:#f5f5f5;
+  margin:0;
+  padding:16px;
+  font-size:18px;
+}
+.container{
+  max-width:680px;
+  margin:0 auto;
+}
+.card{
+  background:white;
+  border-radius:14px;
+  padding:20px;
+  margin-bottom:18px;
+}
+h1{
+  text-align:center;
+  font-size:28px;
+}
+.userBox{
+  background:#eef8f0;
+  border-radius:10px;
+  padding:14px;
+  line-height:1.8;
+  margin-bottom:18px;
+}
+.choiceGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.choiceButton{
+  min-height:92px;
+  border:none;
+  border-radius:12px;
+  font-size:18px;
+  font-weight:bold;
+  padding:14px;
+}
+.aiChoice{
+  background:#eaf2ff;
+}
+.staffChoice{
+  background:#eaf9ef;
+}
+.section{
+  display:none;
+}
+label{
+  display:block;
+  margin-top:16px;
+  margin-bottom:7px;
+  font-weight:bold;
+}
+input,textarea{
+  width:100%;
+  box-sizing:border-box;
+  padding:14px;
+  font-size:18px;
+  border:1px solid #aaa;
+  border-radius:10px;
+}
+textarea{
+  min-height:150px;
+  resize:vertical;
+}
+.primary{
+  width:100%;
+  margin-top:16px;
+  padding:15px;
+  border:none;
+  border-radius:10px;
+  font-size:19px;
+  font-weight:bold;
+  background:#06C755;
+  color:white;
+}
+.secondary{
+  width:100%;
+  margin-top:10px;
+  padding:13px;
+  border:none;
+  border-radius:10px;
+  font-size:17px;
+  background:#ddd;
+}
+.answerBox{
+  display:none;
+  margin-top:16px;
+  padding:16px;
+  background:#f4f7ff;
+  border-radius:10px;
+  line-height:1.7;
+  white-space:pre-wrap;
+}
+.notice{
+  font-size:15px;
+  color:#666;
+  line-height:1.6;
+  margin-top:8px;
+}
+.historyItem{
+  border-top:1px solid #ddd;
+  padding:14px 0;
+}
+.historyTitle{
+  font-weight:bold;
+}
+.status{
+  display:inline-block;
+  margin-top:6px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eee;
+  font-size:14px;
+}
+.historyBody{
+  margin-top:8px;
+  line-height:1.6;
+  white-space:pre-wrap;
+}
+#message{
+  text-align:center;
+  line-height:1.6;
+  white-space:pre-wrap;
+  margin:14px 0;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div class="card">
+  <h1>お問い合わせ</h1>
+
+  <div class="userBox">
+    利用者ID：<strong id="userIdText">確認中...</strong><br>
+    お名前：<strong id="userNameText">確認中...</strong>
+  </div>
+
+  <div id="message">LINE情報を確認しています...</div>
+
+  <div class="choiceGrid">
+    <button class="choiceButton aiChoice" onclick="showAI()">
+      🤖 AIチャットで質問する
+    </button>
+    <button class="choiceButton staffChoice" onclick="showStaff()">
+      💬 スタッフに問い合わせる
+    </button>
+  </div>
+
+  <div class="notice">
+    AIチャットは一般的な生活情報向けです。給与・シフト・個別契約・在留資格など個別確認が必要な内容は、スタッフにお問い合わせください。
+  </div>
+</div>
+
+<div id="aiSection" class="card section">
+  <h2>AIチャット</h2>
+
+  <label for="aiMessage">質問</label>
+  <textarea id="aiMessage" placeholder="母国語のままで質問できます"></textarea>
+
+  <button class="primary" onclick="askAI()">
+    AIに質問する
+  </button>
+
+  <button class="secondary" onclick="hideSections()">
+    戻る
+  </button>
+
+  <div id="aiAnswer" class="answerBox"></div>
+</div>
+
+<div id="staffSection" class="card section">
+  <h2>スタッフに問い合わせる</h2>
+
+  <label for="subject">件名</label>
+  <input id="subject" type="text" placeholder="例：勤務時間について">
+
+  <label for="staffMessage">お問い合わせ内容</label>
+  <textarea id="staffMessage" placeholder="母国語のままで入力できます"></textarea>
+
+  <button class="primary" onclick="sendInquiry()">
+    問い合わせを送信する
+  </button>
+
+  <button class="secondary" onclick="hideSections()">
+    戻る
+  </button>
+
+  <div id="staffResult" class="answerBox"></div>
+</div>
+
+<div class="card">
+  <h2>過去のお問い合わせ</h2>
+  <button class="secondary" onclick="loadHistory()">
+    最新の状態に更新
+  </button>
+  <div id="historyList"></div>
+</div>
+
+</div>
+
+<form id="apiForm" method="post" target="resultFrame" style="display:none;">
+  <input type="hidden" name="action" id="action">
+  <input type="hidden" name="lineUserId" id="sendLineUserId">
+  <input type="hidden" name="subject" id="sendSubject">
+  <input type="hidden" name="message" id="sendMessage">
+</form>
+
+<iframe name="resultFrame" id="resultFrame" style="display:none;"></iframe>
+
+<script>
+const LIFF_ID = "2011016159-YnmXbx1i";
+
+const INQUIRY_PAGE_URL =
+  "https://hyoshioka110-cmd.github.io/User-Register/inquiry.html";
+
+// ★ここだけ、今回デプロイした問い合わせ用Apps Scriptの /exec URL に変更してください
+const INQUIRY_GAS_URL =
+  "ここに問い合わせ用Apps ScriptのWebアプリURL";
+
+let lineUserId = "";
+let currentUser = null;
+
+async function initialize(){
+  const message = document.getElementById("message");
+
+  try{
+    await liff.init({liffId: LIFF_ID});
+
+    if(!liff.isLoggedIn()){
+      message.textContent = "LINEにログインします...";
+      liff.login({redirectUri: INQUIRY_PAGE_URL});
+      return;
+    }
+
+    const profile = await liff.getProfile();
+    lineUserId = profile.userId;
+
+    message.textContent = "利用者情報を確認しています...";
+    callApi("initInquiry");
+
+  }catch(error){
+    console.error(error);
+    message.textContent = "LINE情報を取得できませんでした。LINEからもう一度開いてください。";
+  }
+}
+
+function callApi(action, subject = "", message = ""){
+  document.getElementById("action").value = action;
+  document.getElementById("sendLineUserId").value = lineUserId;
+  document.getElementById("sendSubject").value = subject;
+  document.getElementById("sendMessage").value = message;
+
+  const form = document.getElementById("apiForm");
+  form.action = INQUIRY_GAS_URL;
+  form.submit();
+}
+
+window.addEventListener("message", function(event){
+
+  if(!event.data || event.data.type !== "inquirySystemResult"){
+    return;
+  }
+
+  const result = event.data.data;
+  const message = document.getElementById("message");
+
+  if(!result.ok){
+    message.textContent = result.message || "エラーが発生しました。";
+    return;
+  }
+
+  if(result.action === "initInquiry"){
+    currentUser = {
+      userId: result.userId,
+      name: result.name
+    };
+
+    document.getElementById("userIdText").textContent = result.userId;
+    document.getElementById("userNameText").textContent = result.name;
+    message.textContent = "";
+
+    loadHistory();
+    return;
+  }
+
+  if(result.action === "askAI"){
+    const box = document.getElementById("aiAnswer");
+    box.style.display = "block";
+    box.textContent = result.answer || "";
+    return;
+  }
+
+  if(result.action === "sendInquiry"){
+    const box = document.getElementById("staffResult");
+    box.style.display = "block";
+    box.textContent =
+      "お問い合わせを受け付けました。\n" +
+      "問い合わせID：" + result.inquiryId + "\n\n" +
+      "回答はLINEへお送りします。";
+
+    document.getElementById("subject").value = "";
+    document.getElementById("staffMessage").value = "";
+
+    loadHistory();
+    return;
+  }
+
+  if(result.action === "getInquiryHistory"){
+    renderHistory(result.history || []);
+    return;
+  }
+});
+
+function showAI(){
+  document.getElementById("aiSection").style.display = "block";
+  document.getElementById("staffSection").style.display = "none";
+  document.getElementById("aiSection").scrollIntoView({behavior:"smooth"});
+}
+
+function showStaff(){
+  document.getElementById("staffSection").style.display = "block";
+  document.getElementById("aiSection").style.display = "none";
+  document.getElementById("staffSection").scrollIntoView({behavior:"smooth"});
+}
+
+function hideSections(){
+  document.getElementById("aiSection").style.display = "none";
+  document.getElementById("staffSection").style.display = "none";
+}
+
+function askAI(){
+  if(!currentUser){
+    alert("利用者情報を確認中です。");
+    return;
+  }
+
+  const text = document.getElementById("aiMessage").value.trim();
+
+  if(text === ""){
+    alert("質問を入力してください。");
+    return;
+  }
+
+  const box = document.getElementById("aiAnswer");
+  box.style.display = "block";
+  box.textContent = "AIが回答を作成しています...";
+
+  callApi("askAI", "", text);
+}
+
+function sendInquiry(){
+  if(!currentUser){
+    alert("利用者情報を確認中です。");
+    return;
+  }
+
+  const subject = document.getElementById("subject").value.trim();
+  const text = document.getElementById("staffMessage").value.trim();
+
+  if(subject === ""){
+    alert("件名を入力してください。");
+    return;
+  }
+
+  if(text === ""){
+    alert("お問い合わせ内容を入力してください。");
+    return;
+  }
+
+  const box = document.getElementById("staffResult");
+  box.style.display = "block";
+  box.textContent = "お問い合わせを送信しています...";
+
+  callApi("sendInquiry", subject, text);
+}
+
+function loadHistory(){
+  if(!lineUserId){
+    return;
+  }
+
+  callApi("getInquiryHistory");
+}
+
+function renderHistory(history){
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+
+  if(!history || history.length === 0){
+    list.textContent = "まだお問い合わせはありません。";
+    return;
+  }
+
+  history.forEach(function(item){
+    const box = document.createElement("div");
+    box.className = "historyItem";
+
+    const title = document.createElement("div");
+    title.className = "historyTitle";
+    title.textContent =
+      (item.subject || "お問い合わせ") +
+      "　" +
+      (item.date || "");
+
+    const status = document.createElement("div");
+    status.className = "status";
+    status.textContent = item.status || "対応中";
+
+    const question = document.createElement("div");
+    question.className = "historyBody";
+    question.textContent =
+      "質問：\n" +
+      (item.original || "");
+
+    box.appendChild(title);
+    box.appendChild(status);
+    box.appendChild(question);
+
+    if(item.translatedAnswer){
+      const answer = document.createElement("div");
+      answer.className = "historyBody";
+      answer.textContent =
+        "回答：\n" +
+        item.translatedAnswer;
+
+      box.appendChild(answer);
+    }
+
+    list.appendChild(box);
+  });
+}
+
+initialize();
+</script>
+
+</body>
+</html>
 
