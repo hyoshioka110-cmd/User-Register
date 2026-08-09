@@ -518,18 +518,23 @@ window.addEventListener(
       document.getElementById("message");
 
 
-    if (!result.ok) {
+   if (!result.ok) {
 
-      message.textContent =
-        result.message;
+  message.textContent =
+    result.message;
 
-      document
-        .getElementById("settlementButton")
-        .disabled =
-        false;
+  const button =
+    document.getElementById(
+      "settlementButton"
+    );
 
-      return;
-    }
+  button.disabled = false;
+
+  button.textContent =
+    "この内容で精算する";
+
+  return;
+}
 
 
     if (
