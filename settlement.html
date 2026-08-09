@@ -153,6 +153,15 @@ h2 {
   white-space: pre-wrap;
 }
 
+#settlementMessage {
+  margin-top: 14px;
+  text-align: center;
+  line-height: 1.7;
+  font-weight: bold;
+  color: #d9534f;
+  white-space: pre-wrap;
+}
+
 .notice {
   font-size: 15px;
   line-height: 1.6;
@@ -205,11 +214,9 @@ h2 {
 
 </div>
 
-
 <div id="message">
 LINE情報を確認しています...
 </div>
-
 
 <div
   id="settlementArea"
@@ -230,7 +237,6 @@ LINE情報を確認しています...
     </div>
 
   </div>
-
 
   <div class="pointBox">
 
@@ -261,7 +267,6 @@ LINE情報を確認しています...
 
   </div>
 
-
   <div class="discountBox">
 
     <div>
@@ -272,7 +277,6 @@ LINE情報を確認しています...
     </div>
 
   </div>
-
 
   <div class="paymentBox">
 
@@ -289,7 +293,6 @@ LINE情報を確認しています...
 
   </div>
 
-
   <div class="bankBox">
 
     <strong>振込先</strong>
@@ -297,7 +300,6 @@ LINE情報を確認しています...
     <div id="bankText"></div>
 
   </div>
-
 
   <button
     type="button"
@@ -308,6 +310,7 @@ LINE情報を確認しています...
     この内容で精算する
   </button>
 
+  <div id="settlementMessage"></div>
 
   <div
     id="completeArea"
@@ -339,7 +342,7 @@ LINE情報を確認しています...
     </div>
 
     <div>
-      入金確認後、注文は「支払い済み」に更新されます。
+      入金確認後、注文は「支払済」に更新されます。
     </div>
 
   </div>
@@ -347,7 +350,6 @@ LINE情報を確認しています...
 </div>
 
 </div>
-
 
 <form
   id="apiForm"
@@ -376,13 +378,11 @@ LINE情報を確認しています...
 
 </form>
 
-
 <iframe
   name="resultFrame"
   id="resultFrame"
   style="display:none;"
 ></iframe>
-
 
 <script>
 
@@ -510,31 +510,41 @@ window.addEventListener(
       return;
     }
 
-
     const result =
       event.data.data;
 
     const message =
       document.getElementById("message");
 
+    const settlementMessage =
+      document.getElementById(
+        "settlementMessage"
+      );
 
-   if (!result.ok) {
 
-  message.textContent =
-    result.message;
+    if (!result.ok) {
 
-  const button =
-    document.getElementById(
-      "settlementButton"
-    );
+      const button =
+        document.getElementById(
+          "settlementButton"
+        );
 
-  button.disabled = false;
+      button.disabled =
+        false;
 
-  button.textContent =
-    "この内容で精算する";
+      button.textContent =
+        "この内容で精算する";
 
-  return;
-}
+      settlementMessage.textContent =
+        result.message;
+
+      settlementMessage.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
+      return;
+    }
 
 
     if (
@@ -586,6 +596,10 @@ window.addEventListener(
 
       usePoints =
         false;
+
+
+      settlementMessage.textContent =
+        "";
 
 
       updateAmounts();
@@ -654,6 +668,10 @@ window.addEventListener(
         .getElementById("usePointButton")
         .disabled =
         true;
+
+
+      settlementMessage.textContent =
+        "";
 
 
       document
@@ -814,11 +832,20 @@ function updateAmounts() {
 
 function createSettlement() {
 
+  const settlementMessage =
+    document.getElementById(
+      "settlementMessage"
+    );
+
+
+  settlementMessage.textContent =
+    "";
+
+
   if (totalAmount <= 0) {
 
-    alert(
-      "未払いの注文はありません。"
-    );
+    settlementMessage.textContent =
+      "未払いの注文はありません。";
 
     return;
   }
@@ -868,12 +895,6 @@ function createSettlement() {
     .getElementById("settlementButton")
     .textContent =
     "精算処理中...";
-
-
-  document
-    .getElementById("message")
-    .textContent =
-    "精算情報を登録しています...";
 
 
   document
