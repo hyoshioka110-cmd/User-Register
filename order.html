@@ -222,6 +222,9 @@ LINE情報を確認しています...
 const LIFF_ID =
   "2011016159-YnmXbx1i";
 
+const REGISTER_PAGE_URL =
+  "https://liff.line.me/2011016159-YnmXbx1i";
+
 const ORDER_PAGE_URL =
   "https://hyoshioka110-cmd.github.io/User-Register/order.html";
 
@@ -329,8 +332,36 @@ window.addEventListener(
     const message =
       document.getElementById("message");
 
+
+    // ==============================
+    // エラー処理
+    // ==============================
+
     if (!result.ok) {
 
+      // 未登録の場合は利用者登録画面へ
+      if (
+        result.message &&
+        result.message.includes(
+          "最初に利用者登録"
+        )
+      ) {
+
+        message.textContent =
+          "利用者登録が必要です。\n登録画面へ移動します...";
+
+        setTimeout(function() {
+
+          window.location.href =
+            REGISTER_PAGE_URL;
+
+        }, 500);
+
+        return;
+      }
+
+
+      // その他のエラー
       message.textContent =
         result.message;
 
@@ -341,6 +372,11 @@ window.addEventListener(
 
       return;
     }
+
+
+    // ==============================
+    // 注文画面 初期表示
+    // ==============================
 
     if (
       result.action ===
@@ -405,6 +441,11 @@ window.addEventListener(
 
     }
 
+
+    // ==============================
+    // 注文保存 完了
+    // ==============================
+
     if (
       result.action ===
       "saveOrder"
@@ -455,7 +496,11 @@ window.addEventListener(
 function confirmOrder() {
 
   if (!currentUser) {
-    alert("利用者情報を確認できていません。");
+
+    alert(
+      "利用者情報を確認できていません。"
+    );
+
     return;
   }
 
@@ -474,6 +519,7 @@ function confirmOrder() {
       .getElementById("date")
       .value;
 
+
   if (product === "") {
 
     alert(
@@ -482,6 +528,7 @@ function confirmOrder() {
 
     return;
   }
+
 
   if (
     qty === "" ||
@@ -495,6 +542,7 @@ function confirmOrder() {
     return;
   }
 
+
   if (date === "") {
 
     alert(
@@ -503,6 +551,7 @@ function confirmOrder() {
 
     return;
   }
+
 
   document
     .getElementById("confirmText")
@@ -523,10 +572,12 @@ function confirmOrder() {
       "<br>配達日：" +
       date;
 
+
   document
     .getElementById("confirm")
     .style.display =
     "block";
+
 
   document
     .getElementById("confirm")
@@ -546,20 +597,24 @@ function sendOrder() {
   sendButton.disabled =
     true;
 
+
   document
     .getElementById("message")
     .textContent =
     "注文を送信しています...";
+
 
   document
     .getElementById("action")
     .value =
     "saveOrder";
 
+
   document
     .getElementById("sendLineUserId")
     .value =
     lineUserId;
+
 
   document
     .getElementById("sendProduct")
@@ -568,6 +623,7 @@ function sendOrder() {
       .getElementById("product")
       .value;
 
+
   document
     .getElementById("sendQty")
     .value =
@@ -575,12 +631,14 @@ function sendOrder() {
       .getElementById("qty")
       .value;
 
+
   document
     .getElementById("sendDate")
     .value =
     document
       .getElementById("date")
       .value;
+
 
   submitApi();
 
