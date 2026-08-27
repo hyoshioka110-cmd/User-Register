@@ -187,8 +187,17 @@ const LIFF_ID =
 const GAS_URL =
   "https://script.google.com/macros/s/AKfycbyQ8e1FKptHRjF9hlbJowrvqS_FQYoVsp0iSPYPVCuiEX8pDvFZWUfwstbzc1dCedi8pA/exec";
 
+const ORDER_PAGE_URL =
+  "https://liff.line.me/2011016159-YnmXbx1i/order.html";
+
 let lineUserId = "";
 
+
+/*
+========================================
+LINE情報取得
+========================================
+*/
 
 async function initializeLiff() {
 
@@ -204,6 +213,7 @@ async function initializeLiff() {
       liffId: LIFF_ID
     });
 
+
     if (!liff.isLoggedIn()) {
 
       message.textContent =
@@ -214,18 +224,23 @@ async function initializeLiff() {
       return;
     }
 
+
     const profile =
       await liff.getProfile();
 
+
     lineUserId =
       profile.userId;
+
 
     document
       .getElementById("registerButton")
       .disabled = false;
 
+
     message.textContent =
       "利用者IDと氏名を入力してください。";
+
 
   } catch (error) {
 
@@ -239,6 +254,12 @@ async function initializeLiff() {
 }
 
 
+/*
+========================================
+利用者登録
+========================================
+*/
+
 function registerUser() {
 
   const userId =
@@ -247,11 +268,13 @@ function registerUser() {
       .value
       .trim();
 
+
   const userName =
     document
       .getElementById("userName")
       .value
       .trim();
+
 
   const message =
     document.getElementById("message");
@@ -288,6 +311,7 @@ function registerUser() {
     .getElementById("registerButton")
     .disabled = true;
 
+
   message.textContent =
     "登録しています...";
 
@@ -296,9 +320,11 @@ function registerUser() {
     .getElementById("sendUserId")
     .value = userId;
 
+
   document
     .getElementById("sendUserName")
     .value = userName;
+
 
   document
     .getElementById("sendLineUserId")
@@ -308,13 +334,21 @@ function registerUser() {
   const form =
     document.getElementById("registerForm");
 
+
   form.action =
     GAS_URL;
+
 
   form.submit();
 
 }
 
+
+/*
+========================================
+GASからの結果を受信
+========================================
+*/
 
 window.addEventListener(
   "message",
@@ -328,32 +362,74 @@ window.addEventListener(
       return;
     }
 
+
     const result =
       event.data.data;
+
 
     const message =
       document.getElementById("message");
 
+
+    /*
+    ====================================
+    登録成功
+    ====================================
+    */
+
     if (result.ok) {
 
       message.textContent =
-        result.message;
+        result.message +
+        "\n\n注文画面へ移動します。";
+
 
       message.className =
         "success";
+
 
       document
         .getElementById("userId")
         .disabled = true;
 
+
       document
         .getElementById("userName")
         .disabled = true;
 
+
+      document
+        .getElementById("registerButton")
+        .disabled = true;
+
+
+      /*
+      登録完了後、
+      注文画面へ自動的に移動
+      */
+
+      setTimeout(
+        function() {
+
+          window.location.href =
+            ORDER_PAGE_URL;
+
+        },
+        1500
+      );
+
+
     } else {
+
+      /*
+      ====================================
+      登録失敗
+      ====================================
+      */
 
       message.textContent =
         result.message;
+
 
       document
         .getElementById("registerButton")
@@ -364,6 +440,12 @@ window.addEventListener(
   }
 );
 
+
+/*
+========================================
+開始
+========================================
+*/
 
 initializeLiff();
 
