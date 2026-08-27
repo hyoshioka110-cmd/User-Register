@@ -184,20 +184,17 @@ button:disabled {
 const LIFF_ID =
   "2011016159-YnmXbx1i";
 
+
 const GAS_URL =
   "https://script.google.com/macros/s/AKfycbyQ8e1FKptHRjF9hlbJowrvqS_FQYoVsp0iSPYPVCuiEX8pDvFZWUfwstbzc1dCedi8pA/exec";
 
-const ORDER_PAGE_URL =
-  "https://liff.line.me/2011016159-YnmXbx1i/order.html";
 
 let lineUserId = "";
 
 
-/*
-========================================
-LINE情報取得
-========================================
-*/
+// ========================================
+// LINE情報取得
+// ========================================
 
 async function initializeLiff() {
 
@@ -208,6 +205,7 @@ async function initializeLiff() {
 
     message.textContent =
       "LINE情報を確認しています...";
+
 
     await liff.init({
       liffId: LIFF_ID
@@ -222,6 +220,7 @@ async function initializeLiff() {
       liff.login();
 
       return;
+
     }
 
 
@@ -246,6 +245,7 @@ async function initializeLiff() {
 
     console.error(error);
 
+
     message.textContent =
       "LINE情報を取得できませんでした。\nLINEからもう一度開いてください。";
 
@@ -254,11 +254,9 @@ async function initializeLiff() {
 }
 
 
-/*
-========================================
-利用者登録
-========================================
-*/
+// ========================================
+// 利用者登録
+// ========================================
 
 function registerUser() {
 
@@ -286,6 +284,7 @@ function registerUser() {
       "利用者IDを入力してください。";
 
     return;
+
   }
 
 
@@ -295,6 +294,7 @@ function registerUser() {
       "氏名を入力してください。";
 
     return;
+
   }
 
 
@@ -304,6 +304,7 @@ function registerUser() {
       "LINEユーザー情報を取得できていません。";
 
     return;
+
   }
 
 
@@ -318,17 +319,20 @@ function registerUser() {
 
   document
     .getElementById("sendUserId")
-    .value = userId;
+    .value =
+    userId;
 
 
   document
     .getElementById("sendUserName")
-    .value = userName;
+    .value =
+    userName;
 
 
   document
     .getElementById("sendLineUserId")
-    .value = lineUserId;
+    .value =
+    lineUserId;
 
 
   const form =
@@ -344,11 +348,9 @@ function registerUser() {
 }
 
 
-/*
-========================================
-GASからの結果を受信
-========================================
-*/
+// ========================================
+// GASからの結果を受信
+// ========================================
 
 window.addEventListener(
   "message",
@@ -359,7 +361,9 @@ window.addEventListener(
       event.data.type !==
         "userRegisterResult"
     ) {
+
       return;
+
     }
 
 
@@ -371,11 +375,9 @@ window.addEventListener(
       document.getElementById("message");
 
 
-    /*
-    ====================================
-    登録成功
-    ====================================
-    */
+    // ====================================
+    // 登録成功
+    // ====================================
 
     if (result.ok) {
 
@@ -390,29 +392,32 @@ window.addEventListener(
 
       document
         .getElementById("userId")
-        .disabled = true;
+        .disabled =
+        true;
 
 
       document
         .getElementById("userName")
-        .disabled = true;
+        .disabled =
+        true;
 
 
       document
         .getElementById("registerButton")
-        .disabled = true;
+        .disabled =
+        true;
 
 
-      /*
-      登録完了後、
-      注文画面へ自動的に移動
-      */
+      // ==================================
+      // 注文画面へ直接移動
+      // ==================================
 
       setTimeout(
         function() {
 
-          window.location.href =
-            ORDER_PAGE_URL;
+          window.location.replace(
+            "./order.html"
+          );
 
         },
         1500
@@ -421,11 +426,10 @@ window.addEventListener(
 
     } else {
 
-      /*
-      ====================================
-      登録失敗
-      ====================================
-      */
+
+      // ====================================
+      // 登録失敗
+      // ====================================
 
       message.textContent =
         result.message;
@@ -433,7 +437,8 @@ window.addEventListener(
 
       document
         .getElementById("registerButton")
-        .disabled = false;
+        .disabled =
+        false;
 
     }
 
@@ -441,11 +446,9 @@ window.addEventListener(
 );
 
 
-/*
-========================================
-開始
-========================================
-*/
+// ========================================
+// 開始
+// ========================================
 
 initializeLiff();
 
