@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>会社職員用 日本語ブログ閲覧</title>
+
+<style>
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP","Yu Gothic",sans-serif;
+  background:#f5f6f8;
+  margin:0;
+  color:#222;
+}
+header{
+  background:#fff;
+  border-bottom:1px solid #ddd;
+  padding:18px 22px;
+}
+.headerInner{
+  max-width:1000px;
+  margin:auto;
+}
+h1{
+  margin:0;
+  font-size:22px;
+}
+#viewerInfo{
+  margin-top:7px;
+  font-size:14px;
+  color:#666;
+}
+main{
+  max-width:1000px;
+  margin:28px auto;
+  padding:0 16px 60px;
+}
+.card{
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:14px;
+  padding:22px;
+  margin-bottom:18px;
+  box-shadow:0 3px 12px rgba(0,0,0,.04);
+}
+.loginBox{
+  max-width:480px;
+  margin:50px auto;
+}
+label{
+  display:block;
+  margin-top:16px;
+  margin-bottom:6px;
+  font-weight:700;
+}
+input,textarea{
+  width:100%;
+  box-sizing:border-box;
+  padding:12px;
+  border:1px solid #bbb;
+  border-radius:8px;
+  font-size:16px;
+}
+textarea{
+  min-height:90px;
+  resize:vertical;
+}
+button{
+  border:0;
+  border-radius:8px;
+  padding:11px 17px;
+  font-size:15px;
+  cursor:pointer;
+}
+.primary{
+  background:#2563eb;
+  color:#fff;
+  font-weight:700;
+}
+.wide{
+  width:100%;
+  margin-top:20px;
+}
+.secondary{
+  background:#e5e7eb;
+}
+.hidden{
+  display:none !important;
+}
+.toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:18px;
+}
+.badge{
+  display:inline-block;
+  background:#eef2ff;
+  color:#3730a3;
+  border-radius:999px;
+  padding:6px 10px;
+  font-weight:700;
+  font-size:13px;
+}
+.postTitle{
+  font-size:20px;
+  margin:0 0 6px;
+}
+.meta{
+  color:#666;
+  font-size:13px;
+}
+.article{
+  white-space:pre-wrap;
+  line-height:1.8;
+  margin-top:14px;
+}
+.photo{
+  max-width:100%;
+  max-height:420px;
+  object-fit:contain;
+  margin-top:14px;
+  border-radius:10px;
+}
+details{
+  margin-top:14px;
+  border-top:1px solid #eee;
+  padding-top:12px;
+}
+.corrected,.advice{
+  background:#f8fafc;
+  border-radius:8px;
+  padding:10px 12px;
+  margin-top:10px;
+  white-space:pre-wrap;
+  line-height:1.7;
+}
+.commentBox{
+  border-top:1px solid #eee;
+  margin-top:16px;
+  padding-top:14px;
+}
+.comment{
+  background:#f8fafc;
+  border-radius:8px;
+  padding:10px 12px;
+  margin-top:8px;
+}
+.commentBody{
+  margin-top:4px;
+  white-space:pre-wrap;
+  line-height:1.6;
+}
+.commentActions{
+  text-align:right;
+  margin-top:8px;
+}
+.message{
+  margin-top:12px;
+  color:#b91c1c;
+  white-space:pre-wrap;
+}
+.loading{
+  color:#666;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="headerInner">
+    <h1>会社職員用 日本語ブログ閲覧</h1>
+    <div id="viewerInfo" class="hidden"></div>
+  </div>
+</header>
+
+<main>
+
+  <section id="loginArea" class="card loginBox">
+    <h2>ログイン</h2>
+    <p>会社コード・ログインID・パスワードを入力してください。</p>
+
+    <label for="companyCode">会社コード</label>
+    <input id="companyCode" type="text" placeholder="例：COM1">
+
+    <label for="loginId">ログインID</label>
+    <input id="loginId" type="text" placeholder="例：SG001">
+
+    <label for="password">パスワード</label>
+    <input id="password" type="password">
+
+    <button id="loginButton" class="primary wide">ログイン</button>
+
+    <div id="message" class="message"></div>
+  </section>
+
+
+  <section id="blogArea" class="hidden">
+
+    <div class="toolbar">
+
+      <div>
+        <span id="companyBadge" class="badge"></span>
+        <button id="reloadButton" class="secondary">再読み込み</button>
+      </div>
+
+      <button id="logoutButton" class="secondary">
+        ログアウト
+      </button>
+
+    </div>
+
+    <div id="postList"></div>
+
+  </section>
+
+
+  <form
+    id="apiForm"
+    method="post"
+    target="resultFrame"
+    style="display:none;"
+  >
+    <input type="hidden" name="action" id="sendAction">
+    <input type="hidden" name="companyCode" id="sendCompanyCode">
+    <input type="hidden" name="loginId" id="sendLoginId">
+    <input type="hidden" name="password" id="sendPassword">
+    <input type="hidden" name="sessionToken" id="sendSessionToken">
+    <input type="hidden" name="postId" id="sendPostId">
+    <input type="hidden" name="comment" id="sendComment">
+  </form>
+
+  <iframe
+    name="resultFrame"
+    id="resultFrame"
+    style="display:none;"
+  ></iframe>
+
+</main>
+
+
+<script>
+
+const BLOG_GAS_URL =
+  "https://script.google.com/macros/s/AKfycbyXhyaC-7Qd3vDRR9u9ovbbGA0cA4X002JdMe1OxVvWw7-XE4OL7dyB9DZaV42kHcJyqw/exec";
+
+let sessionToken = "";
+let viewer = null;
+
+
+function callApi(
+  action,
+  extra = {}
+) {
+
+  document.getElementById("sendAction").value =
+    action;
+
+  document.getElementById("sendCompanyCode").value =
+    extra.companyCode || "";
+
+  document.getElementById("sendLoginId").value =
+    extra.loginId || "";
+
+  document.getElementById("sendPassword").value =
+    extra.password || "";
+
+  document.getElementById("sendSessionToken").value =
+    sessionToken || extra.sessionToken || "";
+
+  document.getElementById("sendPostId").value =
+    extra.postId || "";
+
+  document.getElementById("sendComment").value =
+    extra.comment || "";
+
+  const form =
+    document.getElementById("apiForm");
+
+  form.action =
+    BLOG_GAS_URL;
+
+  form.submit();
+
+}
+
+
+function login() {
+
+  const companyCode =
+    document
+      .getElementById("companyCode")
+      .value
+      .trim();
+
+  const loginId =
+    document
+      .getElementById("loginId")
+      .value
+      .trim();
+
+  const password =
+    document
+      .getElementById("password")
+      .value;
+
+  document
+    .getElementById("message")
+    .textContent =
+    "";
+
+  if (
+    companyCode === "" ||
+    loginId === "" ||
+    password === ""
+  ) {
+
+    document
+      .getElementById("message")
+      .textContent =
+      "会社コード・ログインID・パスワードを入力してください。";
+
+    return;
+
+  }
+
+  callApi(
+    "companyLogin",
+    {
+      companyCode:
+        companyCode,
+
+      loginId:
+        loginId,
+
+      password:
+        password
+    }
+  );
+
+}
+
+
+function loadPosts() {
+
+  document
+    .getElementById("postList")
+    .innerHTML =
+    '<div class="card loading">ブログを読み込んでいます...</div>';
+
+  callApi(
+    "getCompanyPosts"
+  );
+
+}
+
+
+function loadComments(
+  postId
+) {
+
+  callApi(
+    "getCompanyComments",
+    {
+      postId:
+        postId
+    }
+  );
+
+}
+
+
+function sendComment(
+  postId
+) {
+
+  const input =
+    document.getElementById(
+      "commentInput_" +
+      postId
+    );
+
+  const comment =
+    String(
+      input.value || ""
+    ).trim();
+
+  if (comment === "") {
+
+    alert(
+      "コメントを入力してください。"
+    );
+
+    return;
+
+  }
+
+  callApi(
+    "addCompanyComment",
+    {
+      postId:
+        postId,
+
+      comment:
+        comment
+    }
+  );
+
+}
+
+
+window.addEventListener(
+  "message",
+  function(event) {
+
+    if (
+      !event.data ||
+      event.data.type !==
+        "blogSystemResult"
+    ) {
+
+      return;
+
+    }
+
+    const result =
+      event.data.data;
+
+    if (!result.ok) {
+
+      document
+        .getElementById("message")
+        .textContent =
+        result.message ||
+        "処理に失敗しました。";
+
+      return;
+
+    }
+
+
+    if (
+      result.action ===
+      "companyLogin"
+    ) {
+
+      sessionToken =
+        result.sessionToken;
+
+      viewer =
+        result.viewer;
+
+      sessionStorage
+        .setItem(
+          "companyBlogSessionToken",
+          sessionToken
+        );
+
+      document
+        .getElementById("loginArea")
+        .classList
+        .add("hidden");
+
+      document
+        .getElementById("blogArea")
+        .classList
+        .remove("hidden");
+
+      document
+        .getElementById("viewerInfo")
+        .classList
+        .remove("hidden");
+
+      const companyLabel =
+        viewer.companyId === "ALL"
+          ? "全社管理"
+          : viewer.companyName;
+
+      document
+        .getElementById("viewerInfo")
+        .textContent =
+        viewer.name +
+        " / " +
+        companyLabel;
+
+      document
+        .getElementById("companyBadge")
+        .textContent =
+        viewer.companyId === "ALL"
+          ? "全社表示"
+          : viewer.companyName;
+
+      document
+        .getElementById("message")
+        .textContent =
+        "";
+
+      loadPosts();
+
+      return;
+
+    }
+
+
+    if (
+      result.action ===
+      "getCompanyPosts"
+    ) {
+
+      viewer =
+        result.viewer ||
+        viewer;
+
+      renderPosts(
+        result.posts || []
+      );
+
+      return;
+
+    }
+
+
+    if (
+      result.action ===
+      "getCompanyComments"
+    ) {
+
+      renderComments(
+        result.postId,
+        result.comments || []
+      );
+
+      return;
+
+    }
+
+
+    if (
+      result.action ===
+      "addCompanyComment"
+    ) {
+
+      const input =
+        document.getElementById(
+          "commentInput_" +
+          result.postId
+        );
+
+      if (input) {
+
+        input.value = "";
+
+      }
+
+      loadComments(
+        result.postId
+      );
+
+      return;
+
+    }
+
+  }
+);
+
+
+function renderPosts(
+  posts
+) {
+
+  const list =
+    document.getElementById(
+      "postList"
+    );
+
+  if (!posts.length) {
+
+    list.innerHTML =
+      '<div class="card">現在、公開中のブログはありません。</div>';
+
+    return;
+
+  }
+
+  list.innerHTML =
+    posts.map(
+      function(post) {
+
+        const photo =
+          post.photoUrl
+            ? '<img class="photo" src="' +
+                escapeHtml(post.photoUrl) +
+                '" alt="投稿写真">'
+            : "";
+
+        return `
+          <article class="card">
+
+            <h2 class="postTitle">
+              ${escapeHtml(post.title)}
+            </h2>
+
+            <div class="meta">
+              ${escapeHtml(post.name)}
+             　
+              ${escapeHtml(post.date)}
+              ${
+                post.companyName
+                  ? " / " +
+                    escapeHtml(post.companyName)
+                  : ""
+              }
+            </div>
+
+            ${photo}
+
+            <div class="article">
+              ${escapeHtml(post.article)}
+            </div>
+
+            <details>
+
+              <summary>
+                AI添削を見る
+              </summary>
+
+              <div class="corrected">
+                ${escapeHtml(post.corrected || "")}
+              </div>
+
+              ${
+                post.advice
+                  ? `
+                    <div class="advice">
+                      <strong>
+                        AIアドバイス
+                      </strong>
+                      <br>
+                      ${escapeHtml(post.advice)}
+                    </div>
+                  `
+                  : ""
+              }
+
+            </details>
+
+            <div class="commentBox">
+
+              <strong>
+                コメント
+              </strong>
+
+              <div
+                id="comments_${escapeHtml(post.postId)}"
+              >
+                <div class="meta">
+                  コメントを読み込んでいます...
+                </div>
+              </div>
+
+              <textarea
+                id="commentInput_${escapeHtml(post.postId)}"
+                placeholder="コメントを入力してください"
+              ></textarea>
+
+              <div class="commentActions">
+
+                <button
+                  class="primary"
+                  onclick="sendComment('${escapeHtml(post.postId)}')"
+                >
+                  コメントを送る
+                </button>
+
+              </div>
+
+            </div>
+
+          </article>
+        `;
+
+      }
+    )
+    .join("");
+
+  posts.forEach(
+    function(post) {
+
+      loadComments(
+        post.postId
+      );
+
+    }
+  );
+
+}
+
+
+function renderComments(
+  postId,
+  comments
+) {
+
+  const box =
+    document.getElementById(
+      "comments_" +
+      postId
+    );
+
+  if (!box) {
+
+    return;
+
+  }
+
+  if (!comments.length) {
+
+    box.innerHTML =
+      '<div class="meta">まだコメントはありません。</div>';
+
+    return;
+
+  }
+
+  box.innerHTML =
+    comments.map(
+      function(comment) {
+
+        return `
+          <div class="comment">
+
+            <div>
+              <strong>
+                ${escapeHtml(comment.name)}
+              </strong>
+
+              <span class="meta">
+                ${escapeHtml(comment.date)}
+              </span>
+            </div>
+
+            <div class="commentBody">
+              ${escapeHtml(comment.comment)}
+            </div>
+
+          </div>
+        `;
+
+      }
+    )
+    .join("");
+
+}
+
+
+function logout() {
+
+  sessionToken = "";
+  viewer = null;
+
+  sessionStorage
+    .removeItem(
+      "companyBlogSessionToken"
+    );
+
+  document
+    .getElementById("blogArea")
+    .classList
+    .add("hidden");
+
+  document
+    .getElementById("viewerInfo")
+    .classList
+    .add("hidden");
+
+  document
+    .getElementById("loginArea")
+    .classList
+    .remove("hidden");
+
+  document
+    .getElementById("password")
+    .value =
+    "";
+
+}
+
+
+function escapeHtml(
+  value
+) {
+
+  return String(
+    value ?? ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
+}
+
+
+document
+  .getElementById(
+    "loginButton"
+  )
+  .addEventListener(
+    "click",
+    login
+  );
+
+document
+  .getElementById(
+    "reloadButton"
+  )
+  .addEventListener(
+    "click",
+    loadPosts
+  );
+
+document
+  .getElementById(
+    "logoutButton"
+  )
+  .addEventListener(
+    "click",
+    logout
+  );
+
+document
+  .getElementById(
+    "password"
+  )
+  .addEventListener(
+    "keydown",
+    function(event) {
+
+      if (
+        event.key ===
+        "Enter"
+      ) {
+
+        login();
+
+      }
+
+    }
+  );
+
+</script>
+
+</body>
+</html>
