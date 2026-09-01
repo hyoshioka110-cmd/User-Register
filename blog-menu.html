@@ -12,6 +12,8 @@
 
 <title>日本語ブログ</title>
 
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
 <style>
 
 body {
@@ -32,7 +34,7 @@ body {
   border-radius: 14px;
   padding: 24px 20px;
   text-align: center;
-  margin-bottom: 18px;
+  margin-bottom: 15px;
 }
 
 h1 {
@@ -46,6 +48,39 @@ h1 {
   font-size: 16px;
   color: #555;
 }
+
+
+/* =========================
+   利用者情報
+========================= */
+
+.userBox {
+  background: #eef8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 18px;
+  line-height: 1.8;
+  font-size: 16px;
+}
+
+.userRow {
+  display: flex;
+  gap: 10px;
+}
+
+.userLabel {
+  min-width: 80px;
+  color: #555;
+}
+
+.userValue {
+  font-weight: bold;
+}
+
+
+/* =========================
+   メニューボタン
+========================= */
 
 .menuButton {
   display: block;
@@ -82,12 +117,28 @@ h1 {
   color: #666;
 }
 
+
+/* =========================
+   読み込みメッセージ
+========================= */
+
+#message {
+  text-align: center;
+  padding: 14px;
+  line-height: 1.6;
+  color: #555;
+}
+
 .note {
   text-align: center;
   font-size: 14px;
   line-height: 1.6;
   color: #777;
   margin-top: 20px;
+}
+
+.hidden {
+  display: none;
 }
 
 </style>
@@ -98,6 +149,11 @@ h1 {
 <body>
 
 <div class="container">
+
+
+  <!-- =========================
+       タイトル
+  ========================== -->
 
   <div class="header">
 
@@ -114,99 +170,463 @@ h1 {
   </div>
 
 
-  <!-- ============================= -->
-  <!-- ブログを書く -->
-  <!-- ============================= -->
+  <!-- =========================
+       利用者情報
+  ========================== -->
 
-  <a
-    class="menuButton"
-    href="./blog.html"
+  <div
+    id="userBox"
+    class="userBox hidden"
   >
 
-    <div class="menuTitle">
+    <div class="userRow">
 
-      <span class="icon">
-        ✏️
-      </span>
+      <div class="userLabel">
+        利用者ID：
+      </div>
 
-      <span>
-        ブログを書く
-      </span>
+      <div
+        id="userId"
+        class="userValue"
+      >
+      </div>
 
     </div>
 
-    <div class="menuText">
-      日本語でブログを書いて、
-      AIの添削を受けて投稿します。
+
+    <div class="userRow">
+
+      <div class="userLabel">
+        氏名：
+      </div>
+
+      <div
+        id="userName"
+        class="userValue"
+      >
+      </div>
+
     </div>
 
-  </a>
+  </div>
 
 
-  <!-- ============================= -->
-  <!-- みんなのブログ -->
-  <!-- ============================= -->
+  <!-- =========================
+       読み込み中
+  ========================== -->
 
-  <a
-    class="menuButton"
-    href="./blog-list.html"
+  <div id="message">
+    LINE情報を確認しています...
+  </div>
+
+
+  <!-- =========================
+       ブログメニュー
+  ========================== -->
+
+  <div
+    id="blogMenu"
+    class="hidden"
   >
 
-    <div class="menuTitle">
 
-      <span class="icon">
-        📖
-      </span>
+    <!-- ブログを書く -->
 
-      <span>
-        みんなのブログを読む
-      </span>
+    <a
+      class="menuButton"
+      href="./blog.html"
+    >
 
+      <div class="menuTitle">
+
+        <span class="icon">
+          ✏️
+        </span>
+
+        <span>
+          ブログを書く
+        </span>
+
+      </div>
+
+      <div class="menuText">
+        日本語でブログを書いて、
+        AIの添削を受けて投稿します。
+      </div>
+
+    </a>
+
+
+    <!-- みんなのブログ -->
+
+    <a
+      class="menuButton"
+      href="./blog-list.html"
+    >
+
+      <div class="menuTitle">
+
+        <span class="icon">
+          📖
+        </span>
+
+        <span>
+          みんなのブログを読む
+        </span>
+
+      </div>
+
+      <div class="menuText">
+        公開されたブログを読んで、
+        いいねやコメントができます。
+      </div>
+
+    </a>
+
+
+    <!-- 人気ランキング -->
+
+    <a
+      class="menuButton"
+      href="./blog-ranking.html"
+    >
+
+      <div class="menuTitle">
+
+        <span class="icon">
+          🏆
+        </span>
+
+        <span>
+          人気ランキング
+        </span>
+
+      </div>
+
+      <div class="menuText">
+        人気のブログや、
+        みんなの活動をランキングで見ます。
+      </div>
+
+    </a>
+
+
+    <div class="note">
+      日本語をたくさん使って、
+      楽しく勉強しましょう。
     </div>
 
-    <div class="menuText">
-      公開されたブログを読んで、
-      いいねやコメントができます。
-    </div>
-
-  </a>
-
-
-  <!-- ============================= -->
-  <!-- 人気ランキング -->
-  <!-- ============================= -->
-
-  <a
-    class="menuButton"
-    href="./blog-ranking.html"
-  >
-
-    <div class="menuTitle">
-
-      <span class="icon">
-        🏆
-      </span>
-
-      <span>
-        人気ランキング
-      </span>
-
-    </div>
-
-    <div class="menuText">
-      人気のブログや、
-      みんなの活動をランキングで見ます。
-    </div>
-
-  </a>
-
-
-  <div class="note">
-    日本語をたくさん使って、
-    楽しく勉強しましょう。
   </div>
 
 </div>
+
+
+<!-- =========================
+     GAS送信用フォーム
+========================= -->
+
+<form
+  id="apiForm"
+  method="post"
+  target="resultFrame"
+  style="display:none;"
+>
+
+  <input
+    type="hidden"
+    name="action"
+    id="action"
+    value="initBlog"
+  >
+
+  <input
+    type="hidden"
+    name="lineUserId"
+    id="sendLineUserId"
+  >
+
+</form>
+
+
+<!-- =========================
+     GAS応答受信用
+========================= -->
+
+<iframe
+  name="resultFrame"
+  id="resultFrame"
+  style="display:none;"
+></iframe>
+
+
+<script>
+
+
+// ========================================
+// 設定
+// ========================================
+
+const LIFF_ID =
+  "2011016159-YnmXbx1i";
+
+
+const BLOG_MENU_URL =
+  "https://hyoshioka110-cmd.github.io/User-Register/blog-menu.html";
+
+
+const BLOG_GAS_URL =
+  "https://script.google.com/macros/s/AKfycbyXhyaC-7Qd3vDRR9u9ovbbGA0cA4X002JdMe1OxVvWw7-XE4OL7dyB9DZaV42kHcJyqw/exec";
+
+
+let lineUserId = "";
+
+
+// ========================================
+// LINE初期化
+// ========================================
+
+async function initialize() {
+
+  const message =
+    document.getElementById(
+      "message"
+    );
+
+  try {
+
+    message.textContent =
+      "LINE情報を確認しています...";
+
+
+    await liff.init({
+      liffId: LIFF_ID
+    });
+
+
+    // LINEログインしていない場合
+
+    if (!liff.isLoggedIn()) {
+
+      message.textContent =
+        "LINEにログインします...";
+
+
+      liff.login({
+        redirectUri:
+          BLOG_MENU_URL
+      });
+
+
+      return;
+
+    }
+
+
+    // LINEプロフィール取得
+
+    const profile =
+      await liff.getProfile();
+
+
+    lineUserId =
+      profile.userId;
+
+
+    if (!lineUserId) {
+
+      throw new Error(
+        "LINEユーザーIDを取得できませんでした。"
+      );
+
+    }
+
+
+    message.textContent =
+      "利用者情報を確認しています...";
+
+
+    // GASへ利用者確認を依頼
+
+    callInitBlog();
+
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+
+    message.textContent =
+      "LINE情報を取得できませんでした。\nLINEからもう一度開いてください。";
+
+  }
+
+}
+
+
+// ========================================
+// GASへ利用者情報を問い合わせ
+// ========================================
+
+function callInitBlog() {
+
+  document
+    .getElementById(
+      "action"
+    )
+    .value =
+    "initBlog";
+
+
+  document
+    .getElementById(
+      "sendLineUserId"
+    )
+    .value =
+    lineUserId;
+
+
+  const form =
+    document.getElementById(
+      "apiForm"
+    );
+
+
+  form.action =
+    BLOG_GAS_URL;
+
+
+  form.submit();
+
+}
+
+
+// ========================================
+// GASからの結果を受信
+// ========================================
+
+window.addEventListener(
+  "message",
+  function(event) {
+
+
+    if (
+      !event.data ||
+      event.data.type !==
+        "blogSystemResult"
+    ) {
+
+      return;
+
+    }
+
+
+    const result =
+      event.data.data;
+
+
+    const message =
+      document.getElementById(
+        "message"
+      );
+
+
+    // エラー
+
+    if (!result.ok) {
+
+      message.textContent =
+        result.message ||
+        "利用者情報を取得できませんでした。";
+
+
+      return;
+
+    }
+
+
+    // initBlog以外は無視
+
+    if (
+      result.action !==
+      "initBlog"
+    ) {
+
+      return;
+
+    }
+
+
+    // ====================================
+    // 利用者ID表示
+    // ====================================
+
+    document
+      .getElementById(
+        "userId"
+      )
+      .textContent =
+      result.userId;
+
+
+    // ====================================
+    // 氏名表示
+    // ====================================
+
+    document
+      .getElementById(
+        "userName"
+      )
+      .textContent =
+      result.name;
+
+
+    // ====================================
+    // 利用者情報を表示
+    // ====================================
+
+    document
+      .getElementById(
+        "userBox"
+      )
+      .classList
+      .remove(
+        "hidden"
+      );
+
+
+    // ====================================
+    // ブログメニューを表示
+    // ====================================
+
+    document
+      .getElementById(
+        "blogMenu"
+      )
+      .classList
+      .remove(
+        "hidden"
+      );
+
+
+    // 読み込み表示を消す
+
+    message.textContent =
+      "";
+
+  }
+);
+
+
+// ========================================
+// 開始
+// ========================================
+
+initialize();
+
+
+</script>
 
 </body>
 
