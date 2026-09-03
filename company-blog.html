@@ -249,6 +249,26 @@ const BLOG_GAS_URL =
 let sessionToken = "";
 let viewer = null;
 
+// コメントを1件ずつ順番に読み込むためのキュー
+let commentQueue = [];
+
+function loadNextComment() {
+
+  if (commentQueue.length === 0) {
+
+    return;
+
+  }
+
+  const postId =
+    commentQueue.shift();
+
+  loadComments(
+    postId
+  );
+
+}
+
 
 function callApi(
   action,
@@ -532,6 +552,9 @@ window.addEventListener(
         result.comments || []
       );
 
+      // 次の投稿のコメントを順番に取得
+      loadNextComment();
+
       return;
 
     }
@@ -685,15 +708,18 @@ function renderPosts(
     )
     .join("");
 
-  posts.forEach(
-    function(post) {
+  // すべての投稿IDをキューに入れ、
+  // コメントを1件ずつ順番に読み込む
+  commentQueue =
+    posts.map(
+      function(post) {
 
-      loadComments(
-        post.postId
-      );
+        return post.postId;
 
-    }
-  );
+      }
+    );
+
+  loadNextComment();
 
 }
 
